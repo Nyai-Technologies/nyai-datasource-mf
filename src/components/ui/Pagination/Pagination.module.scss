@@ -1,0 +1,90 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.wrapper {
+  @include flex-between;
+  padding: $sp-3 $sp-4;
+  border-top: 1px solid $border;
+}
+
+.pages {
+  @include flex-row;
+  gap: 4px;
+}
+
+.page {
+  width: 30px;
+  height: 30px;
+  @include flex-center;
+  border: 1px solid $border;
+  border-radius: $r;
+  background: $white;
+  font-size: $text-sm;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: $t;
+
+  &:hover:not(.active):not(.disabled) {
+    border-color: $primary;
+    color: $primary;
+  }
+}
+
+.active {
+  background: $primary;
+  border-color: $primary;
+  color: $white;
+  font-weight: $fw-semibold;
+}
+
+.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dots {
+  @include flex-center;
+  width: 30px;
+  height: 30px;
+  color: $text-muted;
+  font-size: $text-sm;
+}
+
+.arrow {
+  width: 30px;
+  height: 30px;
+  @include flex-center;
+  border: 1px solid $border;
+  border-radius: $r;
+  background: $white;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: $t;
+
+  svg { width: 14px; height: 14px; }
+
+  &:hover:not(.disabled) { border-color: $primary; color: $primary; }
+  &.disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.perPage {
+  @include flex-row;
+  gap: $sp-2;
+  font-size: $text-sm;
+  color: $text-secondary;
+
+  select {
+    height: 30px;
+    padding: 0 24px 0 $sp-2;
+    border: 1px solid $border;
+    border-radius: $r;
+    font-size: $text-sm;
+    color: $text-secondary;
+    background: $white;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+
+    &:focus { border-color: $primary; }
+  }
+}

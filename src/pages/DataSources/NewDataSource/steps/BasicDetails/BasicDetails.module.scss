@@ -1,0 +1,42 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.form { display: flex; flex-direction: column; gap: $sp-5; }
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-4;
+
+  @media (max-width: 700px) { grid-template-columns: 1fr; }
+}
+
+.section {}
+
+.sectionTitle {
+  @include section-title;
+}
+
+.sectionDesc {
+  font-size: $text-sm;
+  color: $text-secondary;
+  margin-bottom: $sp-4;
+  line-height: 1.5;
+}
+
+.permGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-3;
+
+  @media (max-width: 700px) { grid-template-columns: 1fr; }
+}
+
+.permCard {
+  border: 1.5px solid $border;
+  border-radius: $r;
+  padding: $sp-3 $sp-4;
+  transition: $t;
+
+  &.permSelected { border-color: $primary; background: rgba(30,112,112,.04); }
+}

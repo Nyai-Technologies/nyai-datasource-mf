@@ -1,0 +1,74 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: $sp-5 $sp-6 $sp-6;
+  box-sizing: border-box;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.connector {
+  width: 260px;
+  flex-shrink: 0;
+  height: 1.5px;
+  background: $border;
+  margin: 0 $sp-2;
+}
+
+.connectorDone {
+  background: $primary;
+}
+
+.circle {
+  width: 28px;
+  height: 28px;
+  border-radius: $r-full;
+  @include flex-center;
+  border: 2px solid $border;
+  background: $white;
+  color: $border;
+  font-size: $text-sm;
+  font-weight: $fw-semibold;
+  flex-shrink: 0;
+  z-index: 1;
+  transition: $t;
+
+  svg { width: 14px; height: 14px; }
+}
+
+.circleDone {
+  background: $primary;
+  border-color: $primary;
+  color: $white;
+}
+
+.circleActive {
+  background: $primary;
+  border-color: $primary;
+  color: $white;
+}
+
+.label {
+  font-size: $text-sm;
+  color: $text-muted;
+  font-weight: $fw-normal;
+}
+
+.labelActive {
+  color: $text;
+  font-weight: $fw-semibold;
+}
+
+.labelDone {
+  color: $primary;
+}

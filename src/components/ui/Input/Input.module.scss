@@ -1,0 +1,23 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.field { display: flex; flex-direction: column; width: 100%; }
+
+.label {
+  @include label-style;
+}
+
+.required { color: $danger; margin-left: 3px; }
+
+.input {
+  @include input-base;
+}
+
+.textarea {
+  @include input-base;
+  height: auto;
+  min-height: 130px;
+  padding: $sp-2 $sp-3;
+  resize: vertical;
+  line-height: 1.5;
+}

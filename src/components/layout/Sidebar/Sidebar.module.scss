@@ -1,0 +1,262 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.sidebar {
+  background: $sidebar-bg;
+  color: $white;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: $t-sidebar;
+  flex-shrink: 0;
+  position: relative;
+  z-index: $z-sidebar;
+  width: $sidebar-width;
+  overflow: hidden;
+
+  &.collapsed { width: $sidebar-collapsed; }
+}
+
+// ─── Brand ───────────────────────────────────────────────
+.brand {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: linear-gradient(112.04deg, $sidebar-header-from 0%, $sidebar-header-to 100%);
+  padding: 0 $sp-3 0 $sp-3;
+  gap: $sp-2;
+
+  &.brandCollapsed {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.brandInfo { flex: 1; overflow: hidden; }
+
+.brandName {
+  display: block;
+  font-size: 18px;
+  font-weight: $fw-extrabold;
+  color: $white;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.brandTagline {
+  display: block;
+  font-size: 13px;
+  font-weight: $fw-normal;
+  color: rgba($white, 0.9);
+  margin-top: 3px;
+  line-height: 1;
+}
+
+.brandLetter {
+  font-size: 20px;
+  font-weight: $fw-extrabold;
+  color: $white;
+}
+
+.collapseBtn, .expandBrandBtn {
+  @include flex-center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: $white;
+  cursor: pointer;
+  border-radius: $r-sm;
+  flex-shrink: 0;
+  transition: $t;
+
+  &:hover { background: rgba($white, 0.1); }
+
+  svg { width: 18px; height: 18px; }
+}
+
+.expandBrandBtn { width: 40px; height: 34px; }
+
+// ─── Nav ─────────────────────────────────────────────────
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: $sp-1 0;
+  @include hide-scrollbar;
+}
+
+.navGroup { display: block; }
+
+.divider {
+  height: 1px;
+  background: rgba($sidebar-divider, 0.35);
+  margin: $sp-3 $sp-4;
+}
+
+.navItem {
+  @include flex-row;
+  gap: 12px;
+  padding: 9px $sp-3;
+  margin: 3px $sp-3;
+  border-radius: $r-md;
+  color: rgba($white, 0.82);
+  transition: $t;
+  cursor: pointer;
+
+  &:hover:not(.navItemActive) {
+    background: rgba($white, 0.05);
+    color: $white;
+
+    .navIcon { color: $white; }
+  }
+}
+
+.navItemCollapsed {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.navItemActive {
+  background: #0F4C5C;
+  color: $white;
+  border-radius: $r-md;
+}
+
+.navIcon {
+  flex-shrink: 0;
+  color: rgba($white, 0.65);
+  transition: color $t;
+}
+
+.navIconActive { color: $icon-active !important; }
+
+.navLabel {
+  font-size: $text-base;
+  font-weight: $fw-normal;
+  white-space: nowrap;
+  overflow: hidden;
+  // line-height: 1;
+}
+
+// ─── Profile ─────────────────────────────────────────────
+.profile {
+  padding: $sp-2;
+  flex-shrink: 0;
+}
+
+.profileCollapsed { @include flex-center; }
+
+.profileInner { position: relative; }
+
+.profileBtn {
+  @include flex-row;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: $sp-1;
+  border-radius: $r;
+  transition: $t;
+
+  &:hover .profileName { color: rgba($white, 0.7); }
+}
+
+.avatarBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: $r-full;
+  background: #3b82f6;
+  @include flex-center;
+  flex-shrink: 0;
+  position: relative;
+
+  span:first-child {
+    font-size: $text-sm;
+    font-weight: $fw-bold;
+    color: $white;
+  }
+}
+
+.dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  background: $success;
+  border: 2px solid $sidebar-bg;
+  border-radius: $r-full;
+}
+
+.profileName {
+  flex: 1;
+  font-size: $text-base;
+  font-weight: $fw-normal;
+  color: $white;
+  text-align: left;
+  @include truncate;
+  transition: color $t;
+  line-height: 1;
+}
+
+.chevron {
+  color: rgba($white, 0.45);
+  flex-shrink: 0;
+}
+
+// ─── Profile Menu ─────────────────────────────────────────
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: $z-overlay;
+}
+
+.profileMenu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 100%;
+  margin-left: 4px;
+  min-width: 140px;
+  padding: $sp-1;
+  background: $sidebar-bg;
+  border: 1px solid rgba(#CCD8FA, 0.5);
+  border-radius: $r;
+  box-shadow: $shadow-md;
+  z-index: $z-dropdown;
+}
+
+.menuItem {
+  @include flex-row;
+  gap: $sp-2;
+  width: 100%;
+  padding: $sp-2 $sp-3;
+  font-size: 13px;
+  color: $white;
+  background: none;
+  border: none;
+  border-radius: $r-sm;
+  cursor: pointer;
+  transition: $t;
+
+  &:hover { background: rgba($white, 0.06); }
+
+  svg { width: 14px; height: 14px; }
+}
+
+
+// ─── Tooltip wrapper ─────────────────────────────────────
+.tipWrap {
+  position: relative;
+
+  &:hover .tip { opacity: 1; pointer-events: auto; }
+}

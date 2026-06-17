@@ -1,0 +1,72 @@
+@use 'variables' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $sp-2;
+  padding: 0 $sp-4;
+  height: 36px;
+  font-family: $font;
+  font-size: $text-base;
+  font-weight: $fw-medium;
+  border-radius: $r;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: $t;
+  outline: none;
+  white-space: nowrap;
+  line-height: 1;
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  svg { width: 15px; height: 15px; }
+}
+
+// Variants
+.primary {
+  background: $primary;
+  color: $white;
+  border-color: $primary;
+
+  &:hover:not(:disabled) { background: $primary-dark; border-color: $primary-dark; }
+}
+
+.secondary {
+  background: $white;
+  color: $text;
+  border-color: $border-dark;
+
+  &:hover:not(:disabled) { background: $bg-hover; }
+}
+
+.ghost {
+  background: transparent;
+  color: $primary;
+  border-color: transparent;
+  padding: 0 $sp-1;
+  height: auto;
+  font-size: $text-base;
+
+  &:hover:not(:disabled) { text-decoration: underline; }
+}
+
+.outline {
+  background: $white;
+  color: $text-secondary;
+  border-color: $border;
+
+  &:hover:not(:disabled) { border-color: $border-dark; color: $text; }
+}
+
+.danger {
+  background: $danger;
+  color: $white;
+  border-color: $danger;
+
+  &:hover:not(:disabled) { background: #dc2626; border-color: #dc2626; }
+}
+
+// Sizes
+.sm { height: 30px; padding: 0 $sp-3; font-size: $text-sm; }
+.lg { height: 40px; padding: 0 $sp-5; }

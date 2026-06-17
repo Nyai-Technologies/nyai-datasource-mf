@@ -1,0 +1,303 @@
+@use '../../../../styles/variables' as *;
+@use '../../../../styles/mixins' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: $z-overlay;
+}
+
+.card {
+  background: $white;
+  border-radius: $r-lg;
+  width: 860px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 60px);
+  box-shadow: $shadow-md;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  @include flex-between;
+  padding: $sp-5 $sp-6;
+  border-bottom: 1px solid $border;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: $text-lg;
+  font-weight: $fw-semibold;
+  color: $text;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-muted;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: $r;
+
+  &:hover { background: $bg-hover; color: $text; }
+}
+
+.body {
+  padding: $sp-5 $sp-6;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  overflow-y: auto;
+}
+
+/* ── Fields ─────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.label {
+  font-size: $text-base;
+  font-weight: $fw-semibold;
+  color: $text;
+}
+
+.input {
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: $r;
+  padding: 0 $sp-3;
+  font-size: $text-base;
+  font-family: $font;
+  color: $text;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  &::placeholder { color: $text-muted; }
+  &:focus { border-color: $primary; }
+}
+
+/* ── 2-column grid ──────────────────────────────────── */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $sp-4;
+}
+
+/* ── Select ─────────────────────────────────────────── */
+
+.selectWrap { position: relative; }
+
+.select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: $r;
+  padding: 0 36px 0 $sp-3;
+  font-size: $text-base;
+  font-family: $font;
+  color: $text;
+  appearance: none;
+  outline: none;
+  background: $white;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  &:focus { border-color: $primary; }
+
+  option[value=''] { color: $text-muted; }
+}
+
+.selectChevron {
+  position: absolute;
+  right: $sp-3;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: $text-muted;
+}
+
+/* ── Multi-select column dropdown ───────────────────── */
+
+.multiSelectWrap { position: relative; }
+
+.multiSelectBtn {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: $r;
+  padding: 0 $sp-3;
+  font-size: $text-base;
+  font-family: $font;
+  color: $text;
+  background: $white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  box-sizing: border-box;
+  gap: $sp-2;
+
+  span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  &:focus { border-color: $primary; outline: none; }
+}
+
+.disabled { opacity: 0.5; cursor: not-allowed; }
+.placeholder { color: $text-muted; }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: $r;
+  box-shadow: $shadow-md;
+  z-index: $z-dropdown;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  padding: $sp-2 $sp-3;
+  cursor: pointer;
+  font-size: $text-base;
+  color: $text;
+
+  &:hover { background: $bg-hover; }
+}
+
+/* ── Divider ────────────────────────────────────────── */
+
+.divider {
+  border: none;
+  border-top: 1px solid $border;
+  margin: $sp-1 0;
+}
+
+/* ── Purpose section header ─────────────────────────── */
+
+.sectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: $text-base;
+  font-weight: $fw-semibold;
+  color: $text;
+}
+
+.addBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 $sp-3;
+  border: 1px solid $primary;
+  border-radius: $r;
+  background: $white;
+  font-size: $text-sm;
+  font-family: $font;
+  color: $primary;
+  cursor: pointer;
+  font-weight: $fw-medium;
+
+  &:hover { background: $primary-light; }
+}
+
+/* ── Retention period row ───────────────────────────── */
+
+.retentionRow {
+  display: flex;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: $r;
+  overflow: hidden;
+
+  &:focus-within { border-color: $primary; }
+}
+
+.retentionInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0 $sp-3;
+  font-size: $text-base;
+  font-family: $font;
+  color: $text;
+  min-width: 0;
+
+  &::placeholder { color: $text-muted; }
+}
+
+.unitWrap {
+  position: relative;
+  flex-shrink: 0;
+  border-left: 1px solid $border;
+}
+
+.unitSelect {
+  height: 100%;
+  padding: 0 28px 0 $sp-3;
+  border: none;
+  outline: none;
+  font-size: $text-base;
+  font-family: $font;
+  color: $text;
+  background: $white;
+  appearance: none;
+  cursor: pointer;
+}
+
+.unitChevron {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: $text-muted;
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+
+.footer {
+  @include flex-row;
+  justify-content: flex-end;
+  gap: $sp-3;
+  padding: $sp-4 $sp-6;
+  border-top: 1px solid $border;
+  flex-shrink: 0;
+}
+
+/* ── PII badge ──────────────────────────────────────── */
+
+.piiBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  background: rgba(30, 112, 112, 0.12);
+  color: $primary;
+  font-size: 10px;
+  font-weight: $fw-bold;
+  border-radius: $r-full;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}

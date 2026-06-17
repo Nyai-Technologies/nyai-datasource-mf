@@ -1,0 +1,47 @@
+@use 'variables' as *;
+
+.wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-3;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hidden { display: none; }
+
+.box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid $border-dark;
+  border-radius: $r-sm;
+  background: $white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: $t;
+  margin-top: 1px;
+
+  svg { width: 11px; height: 11px; color: $white; opacity: 0; }
+}
+
+.checked {
+  background: $primary;
+  border-color: $primary;
+
+  svg { opacity: 1; }
+}
+
+.labelText {
+  font-size: $text-base;
+  color: $text;
+  line-height: 1.4;
+}
+
+.description {
+  font-size: $text-sm;
+  color: $text-muted;
+  margin-top: 2px;
+  line-height: 1.4;
+}

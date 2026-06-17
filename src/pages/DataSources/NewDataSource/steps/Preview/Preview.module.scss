@@ -1,0 +1,75 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.grid {
+  display: flex;
+  border: 1px solid $border;
+  border-radius: $r-md;
+  overflow: hidden;
+  min-height: 360px;
+}
+
+.col {
+  overflow-y: auto;
+  max-height: 480px;
+}
+
+.col:first-child {
+  flex: 0 0 38%;
+  border-right: 1px solid $border;
+}
+
+.col:last-child {
+  flex: 1;
+}
+
+.colHeader {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: 14px $sp-4;
+  background: $bg-table-header;
+  border-bottom: 1px solid $border;
+  font-size: $text-base;
+  font-weight: $fw-semibold;
+  color: $text;
+  position: sticky;
+  top: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: $sp-3;
+  padding: 14px $sp-4;
+  border: none;
+  border-bottom: 1px solid $border;
+  background: transparent;
+  font-family: $font;
+  font-size: $text-base;
+  color: $text;
+  cursor: pointer;
+  transition: background $t;
+  text-align: left;
+  box-sizing: border-box;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: $bg-hover; }
+}
+
+.rowSelected { background: rgba(30,112,112,.07); }
+
+.rowName { flex: 1; }
+
+.chevron {
+  color: $text-muted;
+  width: 14px;
+  height: 14px;
+}
+
+.check {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}

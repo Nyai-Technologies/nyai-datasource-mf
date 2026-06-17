@@ -1,0 +1,96 @@
+@use 'variables' as *;
+
+.wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $text-base;
+}
+
+.thead {}
+
+.th {
+  padding: $sp-3 $sp-4;
+  background: $bg-table-header;
+  color: $text;
+  font-weight: $fw-semibold;
+  font-size: $text-sm;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid $border;
+}
+
+.thInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+
+  &.noSort { cursor: default; }
+}
+
+.sortIcons {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0.35;
+  transition: opacity .15s;
+
+  svg { width: 8px; height: 8px; }
+}
+
+.sortActive .sortIcons { opacity: 1; }
+
+.thInner:hover .sortIcons { opacity: 0.7; }
+
+.td {
+  padding: $sp-3 $sp-4;
+  color: $text;
+  border-bottom: 1px solid $border;
+  vertical-align: middle;
+
+  &:first-child { font-weight: $fw-medium; }
+}
+
+.tr {
+  transition: background $t;
+
+  &:hover .td { background: $bg; }
+  &:last-child .td { border-bottom: none; }
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid $success;
+
+  svg { width: 13px; height: 13px; color: $success; }
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $text-muted;
+  padding: $sp-1;
+  border-radius: $r-sm;
+  transition: $t;
+
+  &:hover { color: $text; background: $bg-hover; }
+}
+
+.empty {
+  padding: 48px $sp-4;
+  text-align: center;
+  color: $text-muted;
+  font-size: $text-base;
+}

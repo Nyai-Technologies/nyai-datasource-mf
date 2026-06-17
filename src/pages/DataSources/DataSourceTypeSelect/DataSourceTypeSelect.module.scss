@@ -1,0 +1,86 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+.page { padding: $sp-4; }
+
+.title {
+  font-size: $text-lg;
+  font-weight: $fw-semibold;
+  color: $text;
+  margin-bottom: $sp-5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $sp-4;
+  margin-bottom: $sp-6;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(2, 1fr); }
+}
+
+.card {
+  @include flex-row;
+  gap: $sp-3;
+  padding: $sp-4;
+  border: 1.5px solid $border;
+  border-radius: $r-md;
+  background: $white;
+  cursor: pointer;
+  transition: $t;
+
+  &:hover {
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba(30,112,112,.08);
+  }
+}
+
+.cardSelected {
+  border-color: $primary;
+  background: rgba(30,112,112,.04);
+  box-shadow: 0 0 0 3px rgba(30,112,112,.1);
+}
+
+.cardDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.4);
+}
+
+.comingSoon {
+  margin-left: auto;
+  font-size: $text-xs;
+  color: $text-muted;
+  background: $bg-hover;
+  padding: 2px 6px;
+  border-radius: $r-full;
+  white-space: nowrap;
+}
+
+.iconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: $r;
+  @include flex-center;
+  flex-shrink: 0;
+
+  svg, img { width: 24px; height: 24px; object-fit: contain; }
+}
+
+.cardName {
+  font-size: $text-base;
+  font-weight: $fw-medium;
+  color: $text;
+}
+
+.back {
+  background: none;
+  border: none;
+  color: $primary;
+  font-size: $text-base;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}

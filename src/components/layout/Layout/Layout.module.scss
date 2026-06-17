@@ -1,0 +1,27 @@
+@use 'variables' as *;
+
+.shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: $white;
+  overflow: hidden;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  overflow: auto;
+  background: $white;
+  padding: $sp-3 $sp-4;
+
+  &::-webkit-scrollbar { display: none; }
+  scrollbar-width: none;
+}
