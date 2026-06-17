@@ -11,11 +11,12 @@
  *     </React.Suspense>
  *   } />
  */
+import '../index.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import DataSourcesList from '../pages/DataSources/DataSourcesList/DataSourcesList';
-import DataSourceTypeSelect from '../pages/DataSources/DataSourceTypeSelect/DataSourceTypeSelect';
+import { DataSourcesList } from '../pages/DataSources/DataSourcesList/DataSourcesList';
+import { DataSourceTypeSelect } from '../pages/DataSources/DataSourceTypeSelect/DataSourceTypeSelect';
 import AddDataSource from '../pages/DataSources/NewDataSource/AddDataSource';
-import DataSourceEdit from '../pages/DataSources/DataSourceEdit/DataSourceEdit';
+import { DataSourceEdit } from '../pages/DataSources/DataSourceEdit/DataSourceEdit';
 
 interface DataSourcesAppProps {
   /** Base path the host has mounted this app at (default: "/data-sources") */

@@ -2,10 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import federation from '@originjs/vite-plugin-federation';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -42,19 +38,14 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
-    css: {
-      preprocessorOptions: {
-        scss: {
-          loadPaths: [path.resolve(__dirname, 'src/styles')],
-        },
-      },
-    },
     build: {
       target: 'esnext',
       minify: false,
     },
     server: {
       port: 5001,
+      cors: true,
+      origin: 'http://localhost:5001',
       proxy: {
         '/data-engine': {
           ...proxyTarget,

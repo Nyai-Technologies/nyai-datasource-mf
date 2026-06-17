@@ -6,8 +6,6 @@ import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
 import { Preview } from './steps/Preview/Preview';
 import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent } from '../../../lib/api';
 import type { BasicDetailsData, ConnectionData, SelectedTable } from '../../../types/types';
-import styles from './NewDataSource.module.scss';
-
 const STEPS = [
   { label: 'Basic Details' },
   { label: 'Connection Details' },
@@ -187,25 +185,17 @@ export const NewDataSource: React.FC = () => {
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
+    <div className="flex flex-col h-full">
+      <div className="bg-white flex-1 flex flex-col overflow-hidden">
         <Stepper steps={STEPS} current={step} />
 
         {error && (
-          <div style={{
-            margin: '0 0 12px',
-            padding: '10px 16px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: 6,
-            color: '#dc2626',
-            fontSize: 14,
-          }}>
+          <div className="mx-0 mb-3 px-4 py-[10px] bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[14px]">
             {error}
           </div>
         )}
 
-        <div className={styles.body}>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === 0 && (
             <BasicDetails
               data={basicData}
@@ -234,9 +224,15 @@ export const NewDataSource: React.FC = () => {
           )}
         </div>
 
-        <div className={styles.footer}>
-          <button className={styles.backLink} onClick={handleBack} disabled={loading}>Back</button>
-          <div className={styles.footerRight}>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+          <button
+            className="bg-transparent border-none text-[#1e7070] text-[14px] cursor-pointer p-0 hover:underline disabled:opacity-50"
+            onClick={handleBack}
+            disabled={loading}
+          >
+            Back
+          </button>
+          <div className="flex items-center gap-3">
             <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={loading}>
               Cancel
             </Button>
@@ -249,3 +245,5 @@ export const NewDataSource: React.FC = () => {
     </div>
   );
 };
+
+export default NewDataSource;

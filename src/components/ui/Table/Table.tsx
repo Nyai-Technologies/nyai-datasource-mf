@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Check, MoreVertical } from 'lucide-react';
 import type { SortState } from '../../../types/types';
-import styles from './Table.module.scss';
 
 export interface Column<T> {
   key: keyof T | string;
@@ -19,11 +18,11 @@ interface TableProps<T extends { id: string }> {
 
 function SortIcons({ active, dir }: { active: boolean; dir: 'asc' | 'desc' | null }) {
   return (
-    <span className={`${styles.sortIcons} ${active ? styles.sortActive : ''}`}>
-      <svg viewBox="0 0 10 6" fill={active && dir === 'asc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+    <span className={`flex flex-col gap-[1px] transition-opacity ${active ? 'opacity-100' : 'opacity-35'}`}>
+      <svg viewBox="0 0 10 6" className="w-2 h-2" fill={active && dir === 'asc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
         <path d="M1 5l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <svg viewBox="0 0 10 6" fill={active && dir === 'desc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+      <svg viewBox="0 0 10 6" className="w-2 h-2" fill={active && dir === 'desc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
         <path d="M1 1l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
@@ -49,17 +48,17 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
   });
 
   return (
-    <div className={styles.wrapper}>
-      <table className={styles.table}>
-        <thead className={styles.thead}>
+    <div className="w-full overflow-x-auto">
+      <table className="w-full border-collapse text-[14px]">
+        <thead>
           <tr>
             {columns.map(col => {
               const key = String(col.key);
               const active = sort.key === key;
               return (
-                <th key={key} className={styles.th}>
+                <th key={key} className="px-4 py-3 bg-[#f0f5f5] text-[#1a2030] font-semibold text-[12px] text-left whitespace-nowrap border-b border-[#b8c1d3]">
                   <span
-                    className={`${styles.thInner} ${!col.sortable ? styles.noSort : ''}`}
+                    className={`inline-flex items-center gap-[6px] ${col.sortable ? 'cursor-pointer select-none' : 'cursor-default'} ${active ? '[&>span]:opacity-100' : ''}`}
                     onClick={() => col.sortable && handleSort(key)}
                   >
                     {col.label}
@@ -68,16 +67,20 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 </th>
               );
             })}
-            {onAction && <th className={styles.th} />}
+            {onAction && <th className="px-4 py-3 bg-[#f0f5f5] border-b border-[#b8c1d3]" />}
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 ? (
-            <tr><td colSpan={columns.length + (onAction ? 1 : 0)} className={styles.empty}>No data found.</td></tr>
+            <tr>
+              <td colSpan={columns.length + (onAction ? 1 : 0)} className="py-12 px-4 text-center text-[#9ca3af] text-[14px]">
+                No data found.
+              </td>
+            </tr>
           ) : sorted.map(row => (
             <tr
               key={row.id}
-              className={styles.tr}
+              className="transition-colors [&:hover_td]:bg-[#f8fafc] [&:last-child_td]:border-b-0"
               style={onRowClick ? { cursor: 'pointer' } : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
@@ -85,11 +88,11 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 const key = String(col.key);
                 const val = (row as Record<string, unknown>)[key];
                 return (
-                  <td key={key} className={styles.td}>
+                  <td key={key} className="px-4 py-3 text-[#1a2030] border-b border-[#b8c1d3] align-middle first:font-medium">
                     {col.render ? col.render(val, row) : (
                       key === 'status' ? (
-                        <span className={styles.statusBadge}>
-                          <Check strokeWidth={2.5} />
+                        <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border-2 border-[#22c55e]">
+                          <Check size={13} className="text-[#22c55e]" strokeWidth={2.5} />
                         </span>
                       ) : String(val ?? '')
                     )}
@@ -97,8 +100,11 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 );
               })}
               {onAction && (
-                <td className={styles.td}>
-                  <button className={styles.actionBtn} onClick={e => { e.stopPropagation(); onAction(row); }}>
+                <td className="px-4 py-3 text-[#1a2030] border-b border-[#b8c1d3] align-middle">
+                  <button
+                    className="bg-transparent border-none cursor-pointer text-[#9ca3af] p-1 rounded-[3px] transition-all hover:text-[#1a2030] hover:bg-[#f1f5f9]"
+                    onClick={e => { e.stopPropagation(); onAction(row); }}
+                  >
                     <MoreVertical size={16} />
                   </button>
                 </td>

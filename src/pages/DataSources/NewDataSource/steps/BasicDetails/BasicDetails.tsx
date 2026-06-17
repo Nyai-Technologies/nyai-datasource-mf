@@ -1,7 +1,6 @@
 import React from 'react';
 import { Input, Textarea, Select, Checkbox } from '../../../../../components/Components';
 import type { BasicDetailsData } from '../../../../../types/types';
-import styles from './BasicDetails.module.scss';
 
 const LANGS = [
   { value: 'en', label: 'English' },
@@ -16,8 +15,8 @@ interface BasicDetailsProps {
 }
 
 export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, errors = {} }) => (
-  <div className={styles.form}>
-    <div className={styles.row}>
+  <div className="flex flex-col gap-5">
+    <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
       <Input
         label="App Name"
         required
@@ -36,7 +35,7 @@ export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, erro
       />
     </div>
 
-    <div className={styles.row}>
+    <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
       <Select
         label="Primary Language"
         placeholder="Select the primary language"
@@ -62,15 +61,15 @@ export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, erro
       error={errors.description}
     />
 
-    <div className={styles.section}>
-      <p className={styles.sectionTitle}>
-        Database Access Permissions <span style={{ color: '#ef4444' }}>*</span>
+    <div>
+      <p className="text-[14px] font-semibold text-[#1a2030] mb-1">
+        Database Access Permissions <span className="text-[#ef4444]">*</span>
       </p>
-      <p className={styles.sectionDesc}>
+      <p className="text-[13px] text-[#6b7280] mb-4 leading-[1.5]">
         To analyse your data and power DPDP compliance, NYAI needs certain permissions for this database. These permissions are used only for consent-related operations and nothing else.
       </p>
-      <div className={styles.permGrid}>
-        <div className={`${styles.permCard} ${data.readWrite ? styles.permSelected : ''}`}>
+      <div className="grid grid-cols-2 gap-3 max-[700px]:grid-cols-1">
+        <div className={`border-[1.5px] rounded-[6px] p-3 px-4 transition-all ${data.readWrite ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
           <Checkbox
             checked={data.readWrite}
             onChange={v => onChange({ readWrite: v })}
@@ -78,7 +77,7 @@ export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, erro
             description="Required to scan tables and identify PII columns."
           />
         </div>
-        <div className={`${styles.permCard} ${data.alter ? styles.permSelected : ''}`}>
+        <div className={`border-[1.5px] rounded-[6px] p-3 px-4 transition-all ${data.alter ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
           <Checkbox
             checked={data.alter}
             onChange={v => onChange({ alter: v })}

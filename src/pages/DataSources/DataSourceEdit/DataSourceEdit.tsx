@@ -1,24 +1,13 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { api, type PiiDataObject, type ApiDataSourceDetail } from '../../../lib/api';
+import { api, type ApiDataSourceDetail } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
 import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Search, Plus, Download, Edit2, MoreVertical, Check, Filter } from 'lucide-react';
 import { Button, Input, Textarea, Select, Checkbox, Accordion } from '../../../components/Components';
 import { CreateConsentModal, type PurposeEntry } from './CreateConsentModal/CreateConsentModal';
-import styles from './DataSourceEdit.module.scss';
-
 // ── Types ──────────────────────────────────────────────────
-type Tab = 'basic' | 'connection' | 'database';
+type Tab = 'basic' | 'connection' | 'database' | 'consent';
 
-// ── Mock data ──────────────────────────────────────────────
-const MOCK_SOURCES: Record<string, { name: string; primaryLang: string; secondaryLang: string; description: string }> = {
-  default: {
-    name: 'Customer Checkout Data',
-    primaryLang: 'en',
-    secondaryLang: '',
-    description: 'Contains personal data collected from Data Principals during the checkout and order placement process on the platform. This includes identifying information such as full name, email address, and phone number, along with billing and shipping addresses, payment method details, and order history. This data was collected for the purpose of processing purchases, fulfilling delivery of goods, and managing payment transactions. Consent was obtained at the point of checkout prior to order confirmation.',
-  },
-};
 
 const DB_TABLES = [
   { id: 'consents',  name: 'consents',  pii: false },
@@ -103,8 +92,8 @@ const JSON_TEMPLATE = `{
   }
 }`;
 
-// ── Shared ──────────────────────────────────────────────────
-const PiiBadge = () => <span className={styles.piiBadge}>PII</span>;
+const piiBadgeCls    = 'inline-flex items-center px-[7px] py-[1px] bg-[rgba(30,112,112,0.12)] text-[#1e7070] text-[10px] font-bold rounded-full tracking-[0.4px] cursor-pointer flex-shrink-0';
+const piiBadgeOffCls = 'inline-flex items-center px-[7px] py-[1px] bg-transparent text-[#9ca3af] text-[10px] font-bold rounded-full tracking-[0.4px] border border-dashed border-[#d1d5db] cursor-pointer flex-shrink-0';
 
 // ── Tab: Basic Details ─────────────────────────────────────
 export interface BasicDetailsValues {
@@ -134,24 +123,24 @@ const BasicDetailsTab = forwardRef<
   }));
 
   return (
-    <div className={styles.form}>
-      <div className={styles.row}>
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <Input label="App Name" required placeholder="Enter the app name (e.g. MDM)" value={appName} onChange={e => setAppName(e.target.value)} />
         <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
       </div>
-      <div className={styles.row}>
+      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <Select label="Primary Language" options={LANGS} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
         <Select label="Secondary Language" placeholder="Select the secondary language" options={LANGS} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
       </div>
       <Textarea label="Description" required value={description} onChange={e => setDesc(e.target.value)} rows={6} />
       <div>
-        <p className={styles.sectionTitle}>Database Access Permissions <span style={{ color: '#ef4444' }}>*</span></p>
-        <p className={styles.sectionDesc}>To analyse your data and power DPDP compliance, NYAI needs certain permissions for this database. These permissions are used only for consent-related operations and nothing else.</p>
-        <div className={styles.permGrid}>
-          <div className={`${styles.permCard} ${readWrite ? styles.permSelected : ''}`}>
+        <p className="text-[14px] font-semibold text-[#374151] mb-1">Database Access Permissions <span className="text-[#ef4444]">*</span></p>
+        <p className="text-[13px] text-[#9ca3af] mb-4 leading-[1.5]">To analyse your data and power DPDP compliance, NYAI needs certain permissions for this database. These permissions are used only for consent-related operations and nothing else.</p>
+        <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
+          <div className={`border-[1.5px] rounded-[8px] p-4 transition-all ${readWrite ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
             <Checkbox checked={readWrite} onChange={setReadWrite} label="Read & Write Access" description="Required to scan tables and identify PII columns." />
           </div>
-          <div className={`${styles.permCard} ${alter ? styles.permSelected : ''}`}>
+          <div className={`border-[1.5px] rounded-[8px] p-4 transition-all ${alter ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
             <Checkbox checked={alter} onChange={setAlter} label="Read, Write & Alter Access" description="Allows NYAI to store consent records directly in your database." />
           </div>
         </div>
@@ -166,7 +155,7 @@ type ConnectMode = 'details' | 'uri';
 const ConnectionDetailsTab: React.FC<{
   hostname?: string; port?: number; username?: string;
   databaseName?: string; sslEnabled?: boolean;
-}> = ({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled = false }) => {
+}> = ({ hostname = '', port: initPort, username: initUser = '', databaseName = '' }) => {
   const [mode, setMode]           = useState<ConnectMode>('details');
   const [isJson, setIsJson]       = useState(false);
   const [host, setHost]           = useState(hostname);
@@ -462,11 +451,11 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
 
   return (
     <div>
-      <div className={styles.dbTopBar}>
-        <span className={styles.dbTitle}>Database: <strong>{displayName}</strong></span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[14px] text-[#374151]">Database: <strong>{displayName}</strong></span>
+        <div className="flex items-center gap-[10px]">
           {verifyMsg && (
-            <span style={{ fontSize: 13, color: verifyMsg.ok ? '#16a34a' : '#dc2626' }}>
+            <span className={`text-[13px] ${verifyMsg.ok ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
               {verifyMsg.text}
             </span>
           )}
@@ -477,64 +466,56 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
       </div>
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Loading schema…</div>
+        <div className="p-10 text-center text-[#6b7280] text-[14px]">Loading schema…</div>
       ) : (
-        <div className={styles.dbLayout}>
+        <div className="flex border border-[#b8c1d3] rounded-[8px] overflow-hidden min-h-[340px]">
           {/* Left: table list */}
-          <div className={styles.tablePanel}>
-            <div className={styles.tablePanelHead}>Tables</div>
+          <div className="w-[260px] flex-shrink-0 border-r border-[#b8c1d3] overflow-y-auto">
+            <div className="text-[13px] font-semibold text-[#374151] px-4 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] sticky top-0">Tables</div>
             {tables.map(t => {
               const piiCount = t.columns.filter(c => piiMap[`${t.id}__${c.id}`]).length;
               return (
                 <button
                   key={t.id}
                   type="button"
-                  className={`${styles.tableItem} ${t.id === activeId ? styles.tableItemActive : ''}`}
+                  className={`flex items-center gap-2 w-full px-4 py-3 border-none border-b border-[#b8c1d3] bg-white text-[14px] text-[#374151] cursor-pointer text-left transition-all last:border-b-0 hover:bg-[#f1f5f9] ${t.id === activeId ? 'bg-[rgba(30,112,112,0.06)]' : ''}`}
                   onClick={() => setActiveId(t.id)}
                 >
-                  {piiCount > 0 && <span className={styles.piiBadge}>PII</span>}
-                  <span className={styles.tableName}>{t.name}</span>
-                  {t.id === activeId && <ChevronRight size={16} className={styles.tableChevron} />}
+                  {piiCount > 0 && <span className={piiBadgeCls}>PII</span>}
+                  <span className="flex-1 font-medium">{t.name}</span>
+                  {t.id === activeId && <ChevronRight size={16} className="text-[#1e7070] flex-shrink-0" />}
                 </button>
               );
             })}
           </div>
 
           {/* Right: columns + description + clickable PII badge */}
-          <div className={styles.colPanel}>
-            <div className={styles.colHead}>
+          <div className="flex-1 overflow-y-auto">
+            <div className="grid [grid-template-columns:1fr_1.8fr] px-5 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] text-[13px] font-semibold text-[#374151] sticky top-0">
               <span>Columns</span>
               <span>Description</span>
             </div>
             {activeCols.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+              <div className="px-4 py-8 text-center text-[#6b7280] text-[13px]">
                 No columns found. Click Verify to scan for PII.
               </div>
             ) : activeCols.map(col => {
               const key   = `${activeId}__${col.id}`;
               const isPii = piiMap[key] ?? false;
               return (
-                <div key={col.id} className={styles.colRow}>
-                  <div className={styles.colName}>
+                <div key={col.id} className="grid [grid-template-columns:1fr_1.8fr] items-center min-h-[52px] px-5 py-3 border-b border-[#b8c1d3] text-[14px] text-[#374151] last:border-b-0 hover:bg-[#f1f5f9]">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       title={isPii ? 'Click to remove PII tag' : 'Click to mark as PII'}
                       onClick={() => togglePii(activeId, col.id)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '1px 8px', borderRadius: 20,
-                        border: isPii ? 'none' : '1px dashed #d1d5db',
-                        background: isPii ? undefined : 'transparent',
-                        cursor: 'pointer', flexShrink: 0,
-                        fontFamily: 'inherit',
-                      }}
-                      className={isPii ? styles.piiBadge : styles.piiBadgeOff}
+                      className={isPii ? piiBadgeCls : piiBadgeOffCls}
                     >
                       PII
                     </button>
                     <span>{col.name}</span>
                   </div>
-                  <span className={styles.colDesc}>{col.description}</span>
+                  <span className="text-[#9ca3af] text-[13px] leading-[1.4]">{col.description}</span>
                 </div>
               );
             })}
@@ -593,85 +574,78 @@ const ConsentNoticeTab: React.FC = () => {
     const cols     = previewNotice.columns.length > 0  ? previewNotice.columns  : DEFAULT_COLUMNS;
 
     return (
-      <div className={styles.previewWrap}>
-        <div className={styles.previewTopBar}>
-          <span className={styles.previewHeading}>Consent Notice Preview</span>
-          <div className={styles.previewBtns}>
-            <button className={styles.previewBtn} type="button"><Edit2 size={14} /> Edit</button>
-            <button className={styles.previewBtn} type="button"><Download size={14} /> Download</button>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <span className="text-[14px] font-semibold text-[#374151]">Consent Notice Preview</span>
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-[6px] bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button"><Edit2 size={14} /> Edit</button>
+            <button className="flex items-center gap-[6px] bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button"><Download size={14} /> Download</button>
           </div>
         </div>
 
-        <div className={styles.noticeCard}>
-          <h2 className={styles.noticeTitle}>Customer Privacy Notice</h2>
-          <p className={styles.noticeIntro}>
+        <div className="border border-[#b8c1d3] rounded-[8px] p-6">
+          <h2 className="text-center text-[18px] font-bold text-[#374151] mb-4">Customer Privacy Notice</h2>
+          <p className="text-[14px] text-[#374151] leading-[1.6] mb-5">
             We process your personal data only when it is necessary to provide our services to you. By selecting "Accept All" or "Accept Selected", you consent to the processing of your personal data for the purposes listed below.
           </p>
 
-          <table className={styles.purposeTable}>
+          <table className="w-full border-collapse mb-5">
             <thead>
               <tr>
-                <th className={styles.purposeTh} style={{ width: 40 }}></th>
-                <th className={styles.purposeTh}>Purpose</th>
-                <th className={styles.purposeTh}>Data Categories</th>
-                <th className={styles.purposeTh}>Retention Period</th>
+                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]" style={{ width: 40 }}></th>
+                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Purpose</th>
+                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Data Categories</th>
+                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Retention Period</th>
               </tr>
             </thead>
             <tbody>
               {purposes.map((p, i) => {
                 const cats = p.categories && p.categories.length > 0 ? p.categories : cols;
                 return (
-                  <tr key={i} className={styles.purposeTr}>
-                    <td className={styles.purposeTd}>
+                  <tr key={i} className="[&_td]:border-b [&_td]:border-[#b8c1d3] last:[&_td]:border-b-0">
+                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">
                       <Checkbox checked={checkedRows.has(i)} onChange={() => toggleRow(i)} />
                     </td>
-                    <td className={styles.purposeTd}><strong>{p.purpose}</strong></td>
-                    <td className={styles.purposeTd}>
-                      <div className={styles.categoryList}>
-                        {cats.map(c => <span key={c} className={styles.categoryTag}>• {c}</span>)}
+                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top"><strong>{p.purpose}</strong></td>
+                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">
+                      <div className="flex items-center flex-wrap gap-2">
+                        {cats.map(c => <span key={c} className="inline-flex items-center gap-1 px-[10px] py-[2px] bg-[#e0f0fc] text-[#0066aa] text-[13px] rounded-full">• {c}</span>)}
                       </div>
                     </td>
-                    <td className={styles.purposeTd}>{fmtRetention(p.retention, p.unit)}</td>
+                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">{fmtRetention(p.retention, p.unit)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
 
-          <p className={styles.noticeFooter}>
-            To manage your consent or to submit a grievance on how we process your data, contact us at <a href="mailto:privacy@kothrudstore.com">privacy@kothrudstore.com</a>.
+          <p className="text-[13px] text-[#9ca3af] leading-[1.6] mb-3">
+            To manage your consent or to submit a grievance on how we process your data, contact us at <a className="text-[#1e7070] underline" href="mailto:privacy@kothrudstore.com">privacy@kothrudstore.com</a>.
           </p>
-          <p className={styles.noticeFooter}>
-            You can also submit your complaints to the Data Protection Board of India by e-mailing <a href="mailto:dpb@gov.in">dpb@gov.in</a>.
+          <p className="text-[13px] text-[#9ca3af] leading-[1.6] mb-3">
+            You can also submit your complaints to the Data Protection Board of India by e-mailing <a className="text-[#1e7070] underline" href="mailto:dpb@gov.in">dpb@gov.in</a>.
           </p>
 
-          <div className={styles.noticeCardActions}>
-            <button className={styles.cancelTxt} type="button">Decline</button>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#b8c1d3] mt-4">
+            <button className="bg-transparent border-none cursor-pointer text-[14px] text-[#9ca3af] px-2 hover:text-[#374151]" type="button">Decline</button>
             <Button variant="secondary" size="sm">Accept Selected</Button>
             <Button size="sm">Accept All</Button>
           </div>
         </div>
 
-        <div className={styles.previewBottom}>
-          <button className={styles.backTxt} type="button" onClick={() => setView('list')}>Back</button>
-          <div className={styles.previewBottomRight}>
+        <div className="flex items-center justify-between">
+          <button className="bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button" onClick={() => setView('list')}>Back</button>
+          <div className="flex items-center gap-3">
             {approveStatus !== 'idle' && (
-              <span className={styles.approveSuccess}>
+              <span className="flex items-center gap-2 text-[#16a34a] text-[14px] font-semibold">
                 <CheckCircle size={16} />
                 {approveStatus === 'approved-email' ? 'Approved & email sent' : 'Consent notice approved'}
               </span>
             )}
-            <Button
-              variant="secondary"
-              disabled={approveStatus !== 'idle'}
-              onClick={() => setApproveStatus('approved')}
-            >
+            <Button variant="secondary" disabled={approveStatus !== 'idle'} onClick={() => setApproveStatus('approved')}>
               {approveStatus !== 'idle' ? 'Approved' : 'Approve'}
             </Button>
-            <Button
-              disabled={approveStatus !== 'idle'}
-              onClick={() => setApproveStatus('approved-email')}
-            >
+            <Button disabled={approveStatus !== 'idle'} onClick={() => setApproveStatus('approved-email')}>
               {approveStatus === 'approved-email' ? 'Email Sent' : 'Approve & Send Email'}
             </Button>
           </div>
@@ -691,21 +665,18 @@ const ConsentNoticeTab: React.FC = () => {
           columns={DB_COLUMNS}
         />
       )}
-      <div className={styles.consentBar}>
-        <div className={styles.consentSearch}>
-          <Search size={15} className={styles.searchIcon} />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 border border-[#b8c1d3] rounded-[6px] px-3 h-9 w-[280px] focus-within:border-[#1e7070]">
+          <Search size={15} className="text-[#9ca3af] flex-shrink-0" />
           <input
-            className={styles.searchInput}
+            className="flex-1 border-none outline-none text-[14px] text-[#374151] bg-transparent placeholder:text-[#9ca3af]"
             placeholder="Search"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff', fontSize: 13, color: '#6b7280', cursor: 'pointer' }}
-          >
+        <div className="flex items-center gap-2">
+          <button type="button" className="flex items-center gap-[6px] h-8 px-3 border border-[#e5e7eb] rounded-[6px] bg-white text-[13px] text-[#6b7280] cursor-pointer">
             <Filter size={14} /> Filter
           </button>
           <Button size="sm" onClick={() => setShowModal(true)}>
@@ -714,34 +685,45 @@ const ConsentNoticeTab: React.FC = () => {
         </div>
       </div>
 
-      <table className={styles.consentTable}>
-        <thead>
-          <tr>
-            <th className={styles.consentTh}>Name <span className={styles.sortArrow}>⇅</span></th>
-            <th className={styles.consentTh}>Table <span className={styles.sortArrow}>⇅</span></th>
-            <th className={styles.consentTh}>Status <span className={styles.sortArrow}>⇅</span></th>
-            <th className={styles.consentTh}>Created On <span className={styles.sortArrow}>⇅</span></th>
-            <th className={styles.consentTh} style={{ width: 48 }}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(n => (
-            <tr key={n.id} className={styles.consentTr} onClick={() => openPreview(n)}>
-              <td className={styles.consentTd}>{n.name}</td>
-              <td className={styles.consentTd}>{n.table}</td>
-              <td className={styles.consentTd}>
-                <span className={`${styles.statusBadge} ${styles[`status${n.status}`]}`}>{n.status}</span>
-              </td>
-              <td className={styles.consentTd}>{n.createdOn}</td>
-              <td className={styles.consentTd}>
-                <button className={styles.menuBtn} type="button" onClick={e => e.stopPropagation()}>
-                  <MoreVertical size={16} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {(() => {
+        const statusClsMap: Record<string, string> = {
+          Active:  'bg-[#dcfce7] text-[#14532d]',
+          Draft:   'bg-[#f3f4f6] text-[#374151]',
+          Pending: 'bg-[#fef9c3] text-[#a16207]',
+        };
+        const thCls = 'text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[#f1f5f9] border-b border-[#b8c1d3]';
+        const tdCls = 'px-4 py-4 text-[14px] text-[#374151] border-b border-[#b8c1d3]';
+        return (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className={thCls}>Name <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
+                <th className={thCls}>Table <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
+                <th className={thCls}>Status <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
+                <th className={thCls}>Created On <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
+                <th className={thCls} style={{ width: 48 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(n => (
+                <tr key={n.id} className="cursor-pointer [&:hover_td]:bg-[#f1f5f9] [&:last-child_td]:border-b-0" onClick={() => openPreview(n)}>
+                  <td className={tdCls}>{n.name}</td>
+                  <td className={tdCls}>{n.table}</td>
+                  <td className={tdCls}>
+                    <span className={`inline-flex items-center px-[10px] py-[2px] rounded-full text-[13px] font-semibold ${statusClsMap[n.status] ?? ''}`}>{n.status}</span>
+                  </td>
+                  <td className={tdCls}>{n.createdOn}</td>
+                  <td className={tdCls}>
+                    <button className="bg-transparent border-none cursor-pointer text-[#9ca3af] p-1 rounded-[4px] flex hover:bg-[#f1f5f9] hover:text-[#374151]" type="button" onClick={e => e.stopPropagation()}>
+                      <MoreVertical size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      })()}
     </div>
   );
 };
@@ -751,6 +733,7 @@ const TABS = [
   { id: 'basic',      label: 'Basic Details'      },
   { id: 'connection', label: 'Connection Details'  },
   { id: 'database',   label: 'Database'            },
+  { id: 'consent',    label: 'Consent Notice'      },
 ];
 
 export const DataSourceEdit: React.FC = () => {
@@ -812,25 +795,30 @@ export const DataSourceEdit: React.FC = () => {
   const connSsl        = ds?.sslEnabled  ?? ds?.ssl_enabled  ?? ds?.ssl           ?? false;
 
   if (loadingDs) {
-    return <div style={{ padding: 40, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Loading…</div>;
+    return <div className="p-10 text-center text-[#6b7280] text-[14px]">Loading…</div>;
   }
 
   const loadErrBanner = loadErr ? (
-    <div style={{ margin: '0 24px 16px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-      <span style={{ color: '#dc2626' }}>Could not load data — {loadErr}. You can still edit and save below.</span>
-      <button onClick={fetchDs} style={{ flexShrink: 0, padding: '4px 10px', border: '1px solid #dc2626', borderRadius: 4, background: 'white', color: '#dc2626', fontSize: 12, cursor: 'pointer' }}>Retry</button>
+    <div className="mx-6 mb-4 px-[14px] py-[10px] bg-[#fef2f2] border border-[#fecaca] rounded-[6px] flex items-center justify-between gap-3 text-[13px]">
+      <span className="text-[#dc2626]">Could not load data — {loadErr}. You can still edit and save below.</span>
+      <button onClick={fetchDs} className="flex-shrink-0 px-[10px] py-1 border border-[#dc2626] rounded-[4px] bg-white text-[#dc2626] text-[12px] cursor-pointer">Retry</button>
     </div>
   ) : null;
 
   return (
-    <div className={styles.page}>
+    <div className="flex flex-col h-full bg-white">
       {/* Tab bar */}
-      <div className={styles.tabBar}>
+      <div className="flex px-6 border-b border-[#b8c1d3] flex-shrink-0">
         {TABS.map(t => (
           <button
             key={t.id}
             type="button"
-            className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
+            className={`px-4 py-3 border-none border-b-2 -mb-px bg-transparent text-[14px] cursor-pointer transition-all ${
+              activeTab === t.id
+                ? 'text-[#374151] font-semibold border-b-[#1e7070] border-b-[#1e7070]'
+                : 'text-[#9ca3af] border-b-transparent hover:text-[#374151]'
+            }`}
+            style={{ borderBottomColor: activeTab === t.id ? '#1e7070' : 'transparent' }}
             onClick={() => setActiveTab(t.id as Tab)}
           >
             {t.label}
@@ -841,7 +829,7 @@ export const DataSourceEdit: React.FC = () => {
       {loadErrBanner}
 
       {/* key remounts tabs with correct initial values when API data arrives */}
-      <div className={styles.content} key={ds?.id ?? listRow?.id ?? 'empty'}>
+      <div className="flex-1 overflow-y-auto p-6" key={ds?.id ?? listRow?.id ?? 'empty'}>
         <div style={{ display: activeTab === 'basic'      ? undefined : 'none' }}><BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} /></div>
         <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
           <ConnectionDetailsTab
@@ -853,11 +841,12 @@ export const DataSourceEdit: React.FC = () => {
           />
         </div>
         <div style={{ display: activeTab === 'database' ? undefined : 'none' }}><DatabaseTab sourceName={sourceName} sourceId={id ?? ''} /></div>
+        <div style={{ display: activeTab === 'consent'  ? undefined : 'none' }}><ConsentNoticeTab /></div>
       </div>
 
-      <div className={styles.footer}>
+      <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
         {saveMsg && (
-          <span style={{ fontSize: 13, color: saveMsg.ok ? '#16a34a' : '#dc2626', marginRight: 'auto' }}>
+          <span className={`text-[13px] mr-auto ${saveMsg.ok ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
             {saveMsg.text}
           </span>
         )}

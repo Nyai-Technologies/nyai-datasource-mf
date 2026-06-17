@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../Sidebar/Sidebar';
 import { Navbar } from '../Navbar/Navbar';
 import type { NavItem } from '../../../types/types';
-import styles from './Layout.module.scss';
 
 interface LayoutProps {
   navItems: NavItem[][];
@@ -47,7 +46,7 @@ export const Layout: React.FC<LayoutProps> = ({
   }
 
   return (
-    <div className={styles.shell}>
+    <div className="flex h-screen w-full bg-white overflow-hidden">
       <Sidebar
         items={navItems}
         brandName={brandName}
@@ -56,9 +55,9 @@ export const Layout: React.FC<LayoutProps> = ({
         onLogout={onLogout}
         onProfile={onProfile}
       />
-      <div className={styles.body}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Navbar breadcrumbs={breadcrumbs} rightContent={navbarRight} />
-        <main className={styles.main}>
+        <main className="flex-1 overflow-auto bg-white p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Outlet />
         </main>
       </div>

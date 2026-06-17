@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './DataSourceTypeSelect.module.scss';
 import postgresqlLogo from '../../../assets/layout/img/postgresql logo.svg';
 import mysqlLogo from '../../../assets/layout/img/mysql logo.svg';
 import mongodbLogo from '../../../assets/layout/img/mongodb logo.svg';
@@ -32,10 +31,10 @@ export const DataSourceTypeSelect = () => {
   };
 
   return (
-    <div className={styles.page}>
-      <h2 className={styles.title}>Select Data Source Type</h2>
+    <div className="p-4">
+      <h2 className="text-[18px] font-semibold text-[#1a2030] mb-5">Select Data Source Type</h2>
 
-      <div className={styles.grid}>
+      <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         {DB_TYPES.map(db => {
           const enabled = db.id === 'postgresql';
           const isSelected = selected === db.id;
@@ -44,25 +43,37 @@ export const DataSourceTypeSelect = () => {
               key={db.id}
               type="button"
               className={[
-                styles.card,
-                isSelected ? styles.cardSelected : '',
-                enabled ? '' : styles.cardDisabled,
+                'flex flex-row items-center gap-3 p-4 border-[1.5px] rounded-[8px] bg-white cursor-pointer transition-all text-left',
+                isSelected
+                  ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)] shadow-[0_0_0_3px_rgba(30,112,112,0.1)]'
+                  : 'border-[#b8c1d3] hover:border-[#1e7070] hover:shadow-[0_0_0_3px_rgba(30,112,112,0.08)]',
+                enabled ? '' : 'opacity-45 cursor-not-allowed pointer-events-none grayscale-[40%]',
               ].filter(Boolean).join(' ')}
               onClick={() => handleClick(db.id)}
-              disabled={enabled === false}
+              disabled={!enabled}
               title={enabled ? db.name : 'Coming soon'}
             >
-              <div className={styles.iconWrap} style={{ background: db.bg }}>
-                <img src={db.logo} alt={db.name} />
+              <div
+                className="w-9 h-9 rounded-[6px] flex items-center justify-center flex-shrink-0"
+                style={{ background: db.bg }}
+              >
+                <img src={db.logo} alt={db.name} className="w-6 h-6 object-contain" />
               </div>
-              <span className={styles.cardName}>{db.name}</span>
-              {enabled ? null : <span className={styles.comingSoon}>Coming soon</span>}
+              <span className="text-[14px] font-medium text-[#1a2030]">{db.name}</span>
+              {!enabled && (
+                <span className="ml-auto text-[12px] text-[#9ca3af] bg-[#f1f5f9] px-[6px] py-[2px] rounded-full whitespace-nowrap">
+                  Coming soon
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      <button className={styles.back} onClick={() => navigate('/data-sources')}>
+      <button
+        className="bg-transparent border-none text-[#1e7070] text-[14px] cursor-pointer p-0 hover:underline"
+        onClick={() => navigate('/data-sources')}
+      >
         Back
       </button>
     </div>

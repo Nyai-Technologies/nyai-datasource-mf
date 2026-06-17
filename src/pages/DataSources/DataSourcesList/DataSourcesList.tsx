@@ -7,7 +7,6 @@ import type { Column } from '../../../components/Components';
 import type { FilterOption } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { DataSource } from '../../../types/types';
 import { api, type ApiDataSource } from '../../../lib/api';
-import styles from './DataSourcesList.module.scss';
 
 const STATUS_OPTIONS: FilterOption[] = [
   { value: '',        label: 'All Status'  },
@@ -48,16 +47,16 @@ function mapApiDataSource(src: ApiDataSource): DataSource {
 
 export const DataSourcesList = () => {
   const navigate = useNavigate();
-  const [data, setData]                       = useState<DataSource[]>([]);
-  const [loading, setLoading]                 = useState(true);
-  const [apiError, setApiError]               = useState<string | null>(null);
-  const [syncing, setSyncing]                 = useState(false);
-  const [search, setSearch]                   = useState('');
-  const [statusFilter, setStatusFilter]       = useState('');
-  const [typeFilter, setTypeFilter]           = useState('');
-  const [addedByFilter, setAddedByFilter]     = useState('');
-  const [page, setPage]                       = useState(1);
-  const [pageSize, setPageSize]               = useState(10);
+  const [data, setData]                   = useState<DataSource[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [apiError, setApiError]           = useState<string | null>(null);
+  const [syncing, setSyncing]             = useState(false);
+  const [search, setSearch]               = useState('');
+  const [statusFilter, setStatusFilter]   = useState('');
+  const [typeFilter, setTypeFilter]       = useState('');
+  const [addedByFilter, setAddedByFilter] = useState('');
+  const [page, setPage]                   = useState(1);
+  const [pageSize, setPageSize]           = useState(10);
 
   const fetchData = async () => {
     setApiError(null);
@@ -67,7 +66,6 @@ export const DataSourcesList = () => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load data sources';
       setApiError(msg);
-      console.error('[DataSourcesList]', msg);
     } finally {
       setLoading(false);
     }
@@ -81,7 +79,6 @@ export const DataSourcesList = () => {
     setSyncing(false);
   };
 
-  // Derive unique Added By options from live data
   const addedByOptions: FilterOption[] = [
     { value: '', label: 'All Users' },
     ...Array.from(new Set(data.map(d => d.addedBy).filter(v => v && v !== '—')))
@@ -97,35 +94,25 @@ export const DataSourcesList = () => {
   const resetPage = () => setPage(1);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.toolbar}>
-        <div className={styles.filters}>
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <SearchInput
             placeholder="Search"
             value={search}
             onChange={e => { setSearch(e.target.value); resetPage(); }}
           />
-          <FilterDropdown
-            label="Status"
-            options={STATUS_OPTIONS}
-            value={statusFilter}
-            onChange={v => { setStatusFilter(v); resetPage(); }}
-          />
-          <FilterDropdown
-            label="Added By"
-            options={addedByOptions}
-            value={addedByFilter}
-            onChange={v => { setAddedByFilter(v); resetPage(); }}
-          />
-          <FilterDropdown
-            label="Type"
-            options={TYPE_OPTIONS}
-            value={typeFilter}
-            onChange={v => { setTypeFilter(v); resetPage(); }}
-          />
+          <FilterDropdown label="Status"   options={STATUS_OPTIONS}  value={statusFilter}  onChange={v => { setStatusFilter(v);  resetPage(); }} />
+          <FilterDropdown label="Added By" options={addedByOptions}  value={addedByFilter} onChange={v => { setAddedByFilter(v); resetPage(); }} />
+          <FilterDropdown label="Type"     options={TYPE_OPTIONS}    value={typeFilter}    onChange={v => { setTypeFilter(v);    resetPage(); }} />
         </div>
-        <div className={styles.actions}>
-          <button className={styles.syncBtn} onClick={handleSync} disabled={syncing}>
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-[6px] h-9 px-3 border border-[#b8c1d3] rounded-[6px] bg-white text-[14px] text-[#6b7280] cursor-pointer transition-all hover:border-[#d1d5db] hover:text-[#1a2030] [&>svg]:w-[14px] [&>svg]:h-[14px]"
+            onClick={handleSync}
+            disabled={syncing}
+          >
             <AutorenewIcon size={14} /> {syncing ? 'Syncing…' : 'Sync Data'}
           </button>
           <Button onClick={() => navigate('/data-sources/new/type')}>
@@ -134,16 +121,15 @@ export const DataSourcesList = () => {
         </div>
       </div>
 
-      <div className={styles.card}>
+      {/* Card */}
+      <div className="bg-white rounded-[8px] flex-1 flex flex-col overflow-hidden">
         {apiError && (
-          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#dc2626', fontSize: 13, margin: '0 0 8px' }}>
+          <div className="px-4 py-3 bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[13px] m-0 mb-2">
             {apiError}
           </div>
         )}
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
-            Loading data sources…
-          </div>
+          <div className="p-10 text-center text-[#6b7280] text-[14px]">Loading data sources…</div>
         ) : (
           <>
             <Table
