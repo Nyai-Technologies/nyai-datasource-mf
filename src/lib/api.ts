@@ -176,6 +176,44 @@ export interface ProcessPayload {
   operations: string[];
 }
 
+export type UpdateDataSourceOperation = 'BasicDetails' | 'ConnectionDetails';
+
+export interface UpdateBasicDetailsPayload {
+  operation: 'BasicDetails';
+  name: string;
+  description?: string;
+  primaryLanguageId?: string | null;
+  secondaryLanguageId?: string | null;
+}
+
+export interface UpdateConnectionDetailsPayload {
+  operation: 'ConnectionDetails';
+  connectionDetails: {
+    dialect: string;
+    databaseName: string;
+    username: string;
+    password: string;
+    passwordEncrypted?: boolean;
+    hostname: string;
+    port: number;
+    sslEnabled: boolean;
+  };
+}
+
+export type UpdateDataSourcePayload = UpdateBasicDetailsPayload | UpdateConnectionDetailsPayload;
+
+export interface ApiLanguage {
+  id: string;
+  name: string;
+  code?: string;
+}
+
+export interface ApiDataCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 
 export interface ApiConsent {
   id: string;
@@ -208,13 +246,13 @@ function toArray<T>(val: unknown): T[] {
 
 export const api = {
 
-  async listDataSources(): Promise<ApiDataSource[]> {
-    const res = await request<unknown>('/datasources/DPDPA');
+  async listDataSources(appName = 'DPDPA'): Promise<ApiDataSource[]> {
+    const res = await request<unknown>(`/datasources/${encodeURIComponent(appName)}`);
     return toArray<ApiDataSource>(res);
   },
 
   async getDataSource(id: string): Promise<ApiDataSourceDetail> {
-    const res = await request<unknown>(`/datasources/${id}`);
+    const res = await request<unknown>(`/datasource/${id}`);
     // Unwrap common envelope patterns: { data: {...} }, { datasource: {...} }, { result: {...} }
     if (res && typeof res === 'object' && !('id' in res)) {
       for (const key of ['data', 'datasource', 'result', 'source', 'responseMessage']) {
@@ -252,10 +290,24 @@ export const api = {
     return toArray<ApiConsent>(res);
   },
 
-  updateDataSource(id: string, payload: Partial<DiscoverPayload>): Promise<ApiDataSourceDetail> {
-    return request<ApiDataSourceDetail>(`/datasources/${id}`, {
+  updateDataSource(id: string, payload: UpdateDataSourcePayload): Promise<ApiDataSourceDetail> {
+    return request<ApiDataSourceDetail>(`/datasource/${id}`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
+  },
+
+  deleteDataSource(id: string): Promise<void> {
+    return request<void>(`/datasource/${id}`, { method: 'DELETE' });
+  },
+
+  async listLanguages(): Promise<ApiLanguage[]> {
+    const res = await request<unknown>('/languages');
+    return toArray<ApiLanguage>(res);
+  },
+
+  async listDataCategories(): Promise<ApiDataCategory[]> {
+    const res = await request<unknown>('/attributes/data-category');
+    return toArray<ApiDataCategory>(res);
   },
 };

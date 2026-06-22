@@ -4,7 +4,7 @@ import { Stepper, Button } from '../../../components/Components';
 import { BasicDetails } from './steps/BasicDetails/BasicDetails';
 import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
 import { Preview } from './steps/Preview/Preview';
-import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent } from '../../../lib/api';
+import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent, type ApiLanguage } from '../../../lib/api';
 import type { BasicDetailsData, ConnectionData, SelectedTable } from '../../../types/types';
 const STEPS = [
   { label: 'Basic Details' },
@@ -68,12 +68,14 @@ export const NewDataSource: React.FC = () => {
   });
 
   const [consents, setConsents]             = useState<ApiConsent[]>([]);
+  const [languages, setLanguages]           = useState<ApiLanguage[]>([]);
   const [datasourceId, setDatasourceId]     = useState<string | null>(null);
   const [schema, setSchema]                 = useState<ApiSchemaTable[]>([]);
   const [selectedTables, setSelectedTables] = useState<SelectedTable[]>([]);
 
   useEffect(() => {
     api.listConsents().then(setConsents).catch(() => {});
+    api.listLanguages().then(setLanguages).catch(() => {});
   }, []);
 
   const clearFieldError = (keys: string[]) =>
@@ -110,7 +112,7 @@ export const NewDataSource: React.FC = () => {
             ? 'Allows NYAI to alter the database schema to create the consent tables and store the consent records in both consent and actual tables.'
             : 'Allows NYAI to scan tables and identify PII columns for DPDP compliance.',
           validUpto: '2028-06-12',
-          metadata: {
+          audit: {
             ipAddress: '0.0.0.0',
             browser: {
               name: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Browser',
@@ -131,8 +133,8 @@ export const NewDataSource: React.FC = () => {
         tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) })),
       );
       setStep(2);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed. Please check credentials and try again.');
+    } catch {
+      setError('Connection failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -148,8 +150,8 @@ export const NewDataSource: React.FC = () => {
         operations: ['PII'],
       });
       navigate('/data-sources');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save data source.');
+    } catch {
+      setError('Failed to save data source. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -200,6 +202,7 @@ export const NewDataSource: React.FC = () => {
             <BasicDetails
               data={basicData}
               errors={fieldErrors}
+              languages={languages}
               onChange={patch => {
                 setBasicData(prev => ({ ...prev, ...patch }));
                 clearFieldError(Object.keys(patch));

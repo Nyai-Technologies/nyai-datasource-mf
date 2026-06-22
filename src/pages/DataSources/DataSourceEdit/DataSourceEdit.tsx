@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { api, type ApiDataSourceDetail } from '../../../lib/api';
+import { api, type ApiDataSourceDetail, type UpdateDataSourcePayload } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
 import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Search, Plus, Download, Edit2, MoreVertical, Check, Filter } from 'lucide-react';
 import { Button, Input, Textarea, Select, Checkbox, Accordion } from '../../../components/Components';
@@ -73,11 +73,6 @@ const CONSENT_NOTICES: FullNotice[] = [
   { id: '5', name: 'Loyalty Program Notice',    table: 'Customers',createdOn: '02 Mar 2026, 18:42', status: 'Draft',   columns: [], purposes: [] },
 ];
 
-const LANGS = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'Hindi'   },
-  { value: 'mr', label: 'Marathi' },
-];
 
 const JSON_TEMPLATE = `{
   "type": "postgresql",
@@ -112,11 +107,16 @@ const BasicDetailsTab = forwardRef<
 >(({ sourceAppName = '', sourceName, sourceDescription = '' }, ref) => {
   const [appName, setAppName]         = useState(sourceAppName);
   const [name, setName]               = useState(sourceName);
-  const [primaryLang, setPrimaryLang] = useState('en');
+  const [primaryLang, setPrimaryLang] = useState('');
   const [secondaryLang, setSecond]    = useState('');
   const [description, setDesc]        = useState(sourceDescription);
-  const [readWrite, setReadWrite] = useState(true);
-  const [alter, setAlter]         = useState(false);
+  const [readWrite, setReadWrite]     = useState(true);
+  const [alter, setAlter]             = useState(false);
+  const langs = [
+    { value: 'en', label: 'English' },
+    { value: 'hi', label: 'Hindi'   },
+    { value: 'mr', label: 'Marathi' },
+  ];
 
   useImperativeHandle(ref, () => ({
     getValues: () => ({ appName, name, primaryLang, secondaryLang, description, readWrite, alter }),
@@ -129,8 +129,8 @@ const BasicDetailsTab = forwardRef<
         <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <Select label="Primary Language" options={LANGS} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
-        <Select label="Secondary Language" placeholder="Select the secondary language" options={LANGS} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
+        <Select label="Primary Language" options={langs} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
+        <Select label="Secondary Language" placeholder="Select the secondary language" options={langs} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
       </div>
       <Textarea label="Description" required value={description} onChange={e => setDesc(e.target.value)} rows={6} />
       <div>
@@ -438,8 +438,8 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
         operations: ['PII'],
       });
       setVerifyMsg({ ok: true, text: 'PII scan queued' });
-    } catch (err) {
-      setVerifyMsg({ ok: false, text: err instanceof Error ? err.message : 'Scan failed' });
+    } catch {
+      setVerifyMsg({ ok: false, text: 'PII scan failed. Please try again.' });
     } finally {
       setVerifying(false);
     }
@@ -756,9 +756,8 @@ export const DataSourceEdit: React.FC = () => {
     api.getDataSource(id)
       .then(res => { console.log('[DataSourceEdit] API response:', res); setDs(res); })
       .catch(err => {
-        const msg = err instanceof Error ? err.message : 'Failed to load data source';
         console.error('[DataSourceEdit] getDataSource failed:', err);
-        setLoadErr(msg);
+        setLoadErr('Failed to load data source. Please retry.');
       })
       .finally(() => setLoadingDs(false));
   };
@@ -771,14 +770,15 @@ export const DataSourceEdit: React.FC = () => {
     setSaveMsg(null);
     try {
       const basic = basicRef.current?.getValues();
-      await api.updateDataSource(id, {
-        appName:     basic?.appName,
-        name:        basic?.name,
+      const updatePayload: UpdateDataSourcePayload = {
+        operation: 'BasicDetails',
+        name: basic?.name ?? '',
         description: basic?.description,
-      });
+      };
+      await api.updateDataSource(id, updatePayload);
       setSaveMsg({ ok: true, text: 'Changes saved' });
-    } catch (err) {
-      setSaveMsg({ ok: false, text: err instanceof Error ? err.message : 'Save failed' });
+    } catch {
+      setSaveMsg({ ok: false, text: 'Failed to save changes. Please try again.' });
     } finally {
       setSaving(false);
     }
@@ -800,7 +800,7 @@ export const DataSourceEdit: React.FC = () => {
 
   const loadErrBanner = loadErr ? (
     <div className="mx-6 mb-4 px-[14px] py-[10px] bg-[#fef2f2] border border-[#fecaca] rounded-[6px] flex items-center justify-between gap-3 text-[13px]">
-      <span className="text-[#dc2626]">Could not load data — {loadErr}. You can still edit and save below.</span>
+      <span className="text-[#dc2626]">{loadErr} You can still edit and save below.</span>
       <button onClick={fetchDs} className="flex-shrink-0 px-[10px] py-1 border border-[#dc2626] rounded-[4px] bg-white text-[#dc2626] text-[12px] cursor-pointer">Retry</button>
     </div>
   ) : null;

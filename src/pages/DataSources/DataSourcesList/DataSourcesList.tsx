@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Pencil, Trash2 } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
 import { FilterDropdown } from '../../../components/ui/FilterDropdown/FilterDropdown';
-import type { Column } from '../../../components/Components';
 import type { FilterOption } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { DataSource } from '../../../types/types';
 import { api, type ApiDataSource } from '../../../lib/api';
@@ -19,14 +19,6 @@ const TYPE_OPTIONS: FilterOption[] = [
   { value: 'PostgreSQL', label: 'PostgreSQL' },
   { value: 'MySQL',      label: 'MySQL'      },
   { value: 'MongoDB',    label: 'MongoDB'    },
-];
-
-const COLUMNS: Column<DataSource>[] = [
-  { key: 'name',       label: 'Data Source', sortable: true },
-  { key: 'status',     label: 'Status' },
-  { key: 'type',       label: 'Type',        sortable: true },
-  { key: 'lastSynced', label: 'Last Synced', sortable: true },
-  { key: 'addedBy',    label: 'Added By',    sortable: true },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {
@@ -51,6 +43,7 @@ export const DataSourcesList = () => {
   const [loading, setLoading]             = useState(true);
   const [apiError, setApiError]           = useState<string | null>(null);
   const [syncing, setSyncing]             = useState(false);
+  const [deletingId, setDeletingId]       = useState<string | null>(null);
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('');
   const [typeFilter, setTypeFilter]       = useState('');
@@ -63,9 +56,8 @@ export const DataSourcesList = () => {
     try {
       const result = await api.listDataSources();
       setData(result.map(mapApiDataSource));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load data sources';
-      setApiError(msg);
+    } catch {
+      setApiError('Failed to load data sources. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -78,6 +70,52 @@ export const DataSourcesList = () => {
     await fetchData();
     setSyncing(false);
   };
+
+  const handleDelete = async (row: DataSource) => {
+    if (!confirm(`Delete "${row.name}"? This cannot be undone.`)) return;
+    setDeletingId(row.id);
+    try {
+      await api.deleteDataSource(row.id);
+      setData(prev => prev.filter(d => d.id !== row.id));
+    } catch {
+      setApiError('Failed to delete data source. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const columns = [
+    { key: 'name',       label: 'Data Source', sortable: true },
+    { key: 'status',     label: 'Status' },
+    { key: 'type',       label: 'Type',        sortable: true },
+    { key: 'lastSynced', label: 'Last Synced', sortable: true },
+    { key: 'addedBy',    label: 'Added By',    sortable: true },
+    {
+      key: 'actions',
+      label: '',
+      render: (_val: unknown, row: DataSource) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title="Edit"
+            className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#f1f5f9] hover:text-[#1e7070] transition-colors"
+            onClick={e => { e.stopPropagation(); navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } }); }}
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            type="button"
+            title="Delete"
+            disabled={deletingId === row.id}
+            className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={e => { e.stopPropagation(); handleDelete(row); }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   const addedByOptions: FilterOption[] = [
     { value: '', label: 'All Users' },
@@ -95,7 +133,6 @@ export const DataSourcesList = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <SearchInput
@@ -121,10 +158,9 @@ export const DataSourcesList = () => {
         </div>
       </div>
 
-      {/* Card */}
       <div className="bg-white rounded-[8px] flex-1 flex flex-col overflow-hidden">
         {apiError && (
-          <div className="px-4 py-3 bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[13px] m-0 mb-2">
+          <div className="px-4 py-3 bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[13px] mb-2">
             {apiError}
           </div>
         )}
@@ -133,7 +169,7 @@ export const DataSourcesList = () => {
         ) : (
           <>
             <Table
-              columns={COLUMNS}
+              columns={columns}
               data={filtered.slice((page - 1) * pageSize, page * pageSize)}
               onRowClick={row => navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } })}
             />
