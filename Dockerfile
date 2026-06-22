@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-RUN chown -R appuser:appuser /APP/dist
+RUN chown -R appuser:appuser /APP
 
 USER appuser
 
