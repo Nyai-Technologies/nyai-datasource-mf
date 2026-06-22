@@ -22,8 +22,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({ checked, onChange, label, de
       disabled={disabled}
     />
     <span
-      className={`w-[18px] h-[18px] border-[1.5px] rounded-[3px] bg-white flex items-center justify-center flex-shrink-0 transition-all mt-[1px] ${
-        checked ? 'bg-[#1e7070] border-[#1e7070]' : 'border-[#d1d5db]'
+      className={`w-[18px] h-[18px] border-[1.5px] rounded-[3px] flex items-center justify-center flex-shrink-0 transition-all mt-[1px] ${
+        checked ? 'bg-[#1e7070] border-[#1e7070]' : 'bg-white border-[#d1d5db]'
       }`}
     >
       <Check size={11} strokeWidth={3} className={`text-white ${checked ? 'opacity-100' : 'opacity-0'}`} />

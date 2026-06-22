@@ -18,7 +18,6 @@ type FieldErrors = Record<string, string>;
 
 function validateBasic(data: BasicDetailsData): FieldErrors {
   const errs: FieldErrors = {};
-  if (!data.appName.trim())     errs.appName     = 'App name is required';
   if (!data.name.trim())        errs.name        = 'Name is required';
   if (!data.description.trim()) errs.description = 'Description is required';
   return errs;
@@ -47,7 +46,7 @@ export const NewDataSource: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const [basicData, setBasicData] = useState<BasicDetailsData>({
-    appName: '',
+    appName: 'DPDPA',
     name: '',
     description: '',
     primaryLang: '',
