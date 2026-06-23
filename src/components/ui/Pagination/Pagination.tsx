@@ -12,8 +12,7 @@ interface PaginationProps {
 const pageBtnBase = 'w-[30px] h-[30px] flex items-center justify-center border border-[#b8c1d3] rounded-[6px] bg-white text-[12px] text-[#6b7280] cursor-pointer transition-all';
 
 export const Pagination: React.FC<PaginationProps> = ({ page, total, pageSize, onPage, onPageSize }) => {
-  const totalPages = Math.ceil(total / pageSize);
-  if (totalPages <= 1 && !onPageSize) return null;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const pages: (number | '...')[] = [];
   if (totalPages <= 5) {
@@ -26,6 +25,17 @@ export const Pagination: React.FC<PaginationProps> = ({ page, total, pageSize, o
     pages.push(totalPages);
   }
 
+  // Pre-compute jump target for each ellipsis (stable, not computed during render)
+  const enriched: ({ type: 'page'; value: number } | { type: 'dots'; jump: number })[] =
+    pages.map((p, i) => {
+      if (p === '...') {
+        const prev = pages[i - 1] as number;
+        const next = pages[i + 1] as number;
+        return { type: 'dots', jump: Math.round((prev + next) / 2) };
+      }
+      return { type: 'page', value: p };
+    });
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-[#b8c1d3]">
       <div className="flex items-center gap-1">
@@ -36,16 +46,23 @@ export const Pagination: React.FC<PaginationProps> = ({ page, total, pageSize, o
           <ChevronLeft size={14} />
         </button>
 
-        {pages.map((p, i) =>
-          p === '...' ? (
-            <span key={`dots-${i}`} className="w-[30px] h-[30px] flex items-center justify-center text-[#9ca3af] text-[12px]">…</span>
+        {enriched.map((item) =>
+          item.type === 'dots' ? (
+            <button
+              key={`dots-before-${item.jump}`}
+              type="button"
+              className="w-[30px] h-[30px] flex items-center justify-center bg-transparent border-none text-[#9ca3af] text-[13px] cursor-pointer select-none hover:text-[#1e7070]"
+              onClick={() => onPage(item.jump)}
+            >
+              …
+            </button>
           ) : (
             <button
-              key={p}
-              className={`${pageBtnBase} ${p === page ? 'bg-[#1e7070] border-[#1e7070] text-white font-semibold' : 'hover:border-[#1e7070] hover:text-[#1e7070]'}`}
-              onClick={() => onPage(p as number)}
+              key={item.value}
+              className={`${pageBtnBase} ${item.value === page ? 'bg-[#1e7070] border-[#1e7070] text-white font-semibold' : 'hover:border-[#1e7070] hover:text-[#1e7070]'}`}
+              onClick={() => onPage(item.value)}
             >
-              {p}
+              {item.value}
             </button>
           ),
         )}
