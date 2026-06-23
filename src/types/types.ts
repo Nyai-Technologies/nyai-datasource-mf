@@ -17,7 +17,7 @@ export interface DataSource {
   id: string;
   appName: string;
   name: string;
-  status: 'valid' | 'invalid' | 'pending';
+  status: 'completed' | 'sample_collected' | 'created';
   type: string;
   lastSynced: string;
   addedBy: string;

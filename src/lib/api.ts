@@ -1,4 +1,6 @@
-const AUTH_BASE = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`;
+// AUTH_BASE stays same-origin (proxied by server.mjs /api/ → compliance service)
+const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
+// DATA_BASE uses absolute URL in production so requests go to datasource-mf domain
 const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 function getToken(): string {
@@ -54,6 +56,7 @@ export interface ApiDataSource {
   app_name: string;
   status: string;
   created_by: string;
+  updated_at?: string;
 }
 
 export interface ApiDataSourceDetail {
@@ -171,6 +174,7 @@ export interface PiiAttribute {
   isPii?: boolean;
   pii?: boolean;
   is_pii?: boolean;
+  dataCategories?: string[] | null;
 }
 
 export interface PiiDataObject {
@@ -221,11 +225,7 @@ export interface ApiLanguage {
   code?: string;
 }
 
-export interface ApiDataCategory {
-  id: string;
-  name: string;
-  description?: string;
-}
+export type ApiDataCategory = string;
 
 
 export interface ApiConsent {
@@ -266,18 +266,32 @@ export const api = {
 
   async getDataSource(id: string): Promise<ApiDataSourceDetail> {
     const res = await request<unknown>(`/datasource/${id}`);
-    // Unwrap common envelope patterns: { data: {...} }, { datasource: {...} }, { result: {...} }
-    if (res && typeof res === 'object' && !('id' in res)) {
+    console.log('[API] getDataSource raw:', JSON.stringify(res));
+
+    let obj = res as Record<string, unknown>;
+
+    // Unwrap common envelope patterns
+    if (obj && typeof obj === 'object' && !('id' in obj)) {
       for (const key of ['data', 'datasource', 'result', 'source', 'responseMessage']) {
-        const v = (res as Record<string, unknown>)[key];
-        if (v && typeof v === 'object' && 'id' in v) {
-          console.log(`[API] getDataSource unwrapped from "${key}":`, v);
-          return v as ApiDataSourceDetail;
+        const v = obj[key];
+        if (v && typeof v === 'object' && 'id' in (v as object)) {
+          obj = v as Record<string, unknown>;
+          break;
         }
       }
     }
-    console.log('[API] getDataSource raw:', res);
-    return res as ApiDataSourceDetail;
+
+    // Flatten nested connectionDetails / connection block into top level
+    for (const key of ['connectionDetails', 'connection', 'connectionInfo', 'dbConnection']) {
+      const nested = obj[key];
+      if (nested && typeof nested === 'object') {
+        obj = { ...obj, ...(nested as Record<string, unknown>) };
+        break;
+      }
+    }
+
+    console.log('[API] getDataSource resolved:', JSON.stringify(obj));
+    return obj as unknown as ApiDataSourceDetail;
   },
 
   discoverDatabase(payload: DiscoverPayload): Promise<DiscoverResponse> {
@@ -321,6 +335,7 @@ export const api = {
 
   async listDataCategories(): Promise<ApiDataCategory[]> {
     const res = await request<unknown>('/attributes/data-category');
+    if (Array.isArray(res)) return res as string[];
     return toArray<ApiDataCategory>(res);
   },
 };
