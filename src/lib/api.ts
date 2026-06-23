@@ -4,10 +4,14 @@ const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
 const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 function getToken(): string {
-  // Cookie is scoped to dev.nyai.ai — read from localStorage where the shell stores it
-  const fromStorage = localStorage.getItem('access_token') ?? localStorage.getItem('token') ?? '';
+  // Try all storage locations the shell may use
+  const fromStorage =
+    sessionStorage.getItem('nyai_access_token') ??
+    localStorage.getItem('access_token') ??
+    localStorage.getItem('token') ??
+    '';
   if (fromStorage) return fromStorage;
-  // Fallback: parse from document.cookie (works when same domain)
+  // Fallback: parse from document.cookie
   const match = /(?:^|;\s*)access_token=([^;]+)/.exec(document.cookie);
   return match ? decodeURIComponent(match[1]) : '';
 }
@@ -19,7 +23,12 @@ function buildHeaders(): Record<string, string> {
     'X-Timestamp': new Date().toISOString(),
   };
   const token = getToken();
-  if (token) headers['X-Access-Token'] = token;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Access-Token'] = token;
+    // Set cookie so backend cookie-based auth also works
+    document.cookie = `access_token=${encodeURIComponent(token)}; path=/; SameSite=None; Secure`;
+  }
   return headers;
 }
 
