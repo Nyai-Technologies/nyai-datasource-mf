@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
 import { FilterDropdown } from '../../../components/ui/FilterDropdown/FilterDropdown';
@@ -35,6 +35,56 @@ function mapApiDataSource(src: ApiDataSource): DataSource {
     lastSynced: '—',
     addedBy:    src.created_by,
   };
+}
+
+function RowMenu({ onEdit, onDelete, disabled }: {
+  readonly onEdit: () => void;
+  readonly onDelete: () => void;
+  readonly disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex items-center justify-end">
+      <button
+        type="button"
+        disabled={disabled}
+        className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#f1f5f9] hover:text-[#1e7070] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+      >
+        <MoreVertical size={16} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-9 z-50 min-w-[110px] bg-white border border-[#e5e7eb] rounded-[6px] shadow-md py-1 overflow-hidden">
+          <button
+            type="button"
+            className="w-full px-4 py-2 text-left text-[13px] text-[#374151] hover:bg-[#f9fafb] transition-colors"
+            onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="w-full px-4 py-2 text-left text-[13px] text-[#dc2626] hover:bg-[#fef2f2] transition-colors"
+            onClick={e => { e.stopPropagation(); setOpen(false); onDelete(); }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const DataSourcesList = () => {
@@ -94,25 +144,11 @@ export const DataSourcesList = () => {
       key: 'actions',
       label: '',
       render: (_val: unknown, row: DataSource) => (
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            title="Edit"
-            className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#f1f5f9] hover:text-[#1e7070] transition-colors"
-            onClick={e => { e.stopPropagation(); navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } }); }}
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            type="button"
-            title="Delete"
-            disabled={deletingId === row.id}
-            className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            onClick={e => { e.stopPropagation(); handleDelete(row); }}
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
+        <RowMenu
+          disabled={deletingId === row.id}
+          onEdit={() => navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } })}
+          onDelete={() => handleDelete(row)}
+        />
       ),
     },
   ];
