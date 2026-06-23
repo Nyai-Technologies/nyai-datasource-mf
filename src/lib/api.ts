@@ -1,4 +1,5 @@
-const BASE_URL = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
+const AUTH_BASE = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`;
+const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 function getToken(): string {
   // Cookie is scoped to dev.nyai.ai — read from localStorage where the shell stores it
@@ -321,5 +322,52 @@ export const api = {
   async listDataCategories(): Promise<ApiDataCategory[]> {
     const res = await request<unknown>('/attributes/data-category');
     return toArray<ApiDataCategory>(res);
+  },
+};
+
+// ── Auth types ────────────────────────────────────────────────
+
+export interface AuthUser {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  entityName?: string;
+  name?: string;
+}
+
+async function authRequest<T>(path: string, body?: unknown): Promise<T> {
+  const hasBody = body !== undefined;
+  const res = await fetch(`${AUTH_BASE}${path}`, {
+    method: hasBody ? 'POST' : 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    ...(hasBody ? { body: JSON.stringify(body) } : {}),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (json as Record<string, string>).message
+      ?? (json as Record<string, string>).error
+      ?? `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return json as T;
+}
+
+export const auth = {
+  login: (email: string, password: string) =>
+    authRequest<AuthUser>('/auth/login', { email, password }),
+
+  register: (email: string, password: string, firstName: string, lastName: string, entityName: string) =>
+    authRequest<AuthUser>('/auth/register', { email, password, firstName, lastName, entityName }),
+
+  async logout(): Promise<void> {
+    await fetch(`${AUTH_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+  },
+
+  async me(): Promise<AuthUser> {
+    const res = await fetch(`${AUTH_BASE}/auth/me`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Unauthenticated');
+    return res.json() as Promise<AuthUser>;
   },
 };
