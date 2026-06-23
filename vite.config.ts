@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => {
       minify: false,
       assetsDir: '',
     },
+    preview: {
+      allowedHosts: ['datasource-mf-dev.nyai.ai'],
+    },
     server: {
       port: 5001,
       cors: true,
