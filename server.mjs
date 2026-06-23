@@ -47,8 +47,12 @@ async function proxyRequest(req, res) {
 
   // Forward or inject the access_token cookie
   let cookie = req.headers['cookie'] ?? '';
-  if (!cookie.includes('access_token=') && DEV_TOKEN) {
-    cookie = cookie ? `${cookie}; access_token=${DEV_TOKEN}` : `access_token=${DEV_TOKEN}`;
+  if (!cookie.includes('access_token=')) {
+    // Prefer token sent explicitly by the frontend via X-Access-Token header
+    const headerToken = req.headers['x-access-token'] ?? DEV_TOKEN;
+    if (headerToken) {
+      cookie = cookie ? `${cookie}; access_token=${headerToken}` : `access_token=${headerToken}`;
+    }
   }
 
   const forwardHeaders = {
@@ -64,9 +68,9 @@ async function proxyRequest(req, res) {
     forwardHeaders['content-length'] = String(body.length);
   }
 
-  // Forward any custom request headers (X-Request-Id, X-Timestamp, etc.)
+  // Forward custom request headers (X-Request-Id, X-Timestamp, etc.) but not our internal one
   for (const [k, v] of Object.entries(req.headers)) {
-    if (k.startsWith('x-') && !forwardHeaders[k]) forwardHeaders[k] = v;
+    if (k.startsWith('x-') && k !== 'x-access-token' && !forwardHeaders[k]) forwardHeaders[k] = v;
   }
 
   const options = {

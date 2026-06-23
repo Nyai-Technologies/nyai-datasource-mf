@@ -1,11 +1,23 @@
 const BASE_URL = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
+function getToken(): string {
+  // Cookie is scoped to dev.nyai.ai — read from localStorage where the shell stores it
+  const fromStorage = localStorage.getItem('access_token') ?? localStorage.getItem('token') ?? '';
+  if (fromStorage) return fromStorage;
+  // Fallback: parse from document.cookie (works when same domain)
+  const match = /(?:^|;\s*)access_token=([^;]+)/.exec(document.cookie);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
 function buildHeaders(): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Request-Id': crypto.randomUUID(),
     'X-Timestamp': new Date().toISOString(),
   };
+  const token = getToken();
+  if (token) headers['X-Access-Token'] = token;
+  return headers;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
