@@ -149,5 +149,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[server] listening on http://0.0.0.0:${PORT}`);
-  console.log(`[server] proxying ${PROXY_PREFIXES.join(', ')} → ${API_ORIGIN}`);
+  console.log(`[server] proxying ${PROXY_ROUTES.map(r => `${r.prefix} → ${r.target}`).join(', ')}`);
 });
