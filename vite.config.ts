@@ -41,6 +41,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       minify: false,
+      assetsDir: '',
     },
     server: {
       port: 5001,
