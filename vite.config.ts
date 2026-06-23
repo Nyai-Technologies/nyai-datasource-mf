@@ -41,6 +41,10 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       minify: false,
+      assetsDir: '',
+    },
+    preview: {
+      allowedHosts: ['datasource-mf-dev.nyai.ai'],
     },
     server: {
       port: 5001,

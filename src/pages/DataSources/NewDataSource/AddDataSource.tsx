@@ -31,8 +31,8 @@ function validateConnection(data: ConnectionData): FieldErrors {
     if (!data.username.trim()) errs.username = 'Username is required';
     if (!data.password.trim()) errs.password = 'Password is required';
     if (!data.dbName.trim())   errs.dbName   = 'Database name is required';
-  } else {
-    if (!data.uri.trim()) errs.uri = 'Connection URI is required';
+  } else if (!data.uri.trim()) {
+    errs.uri = 'Connection URI is required';
   }
   return errs;
 }
@@ -111,7 +111,7 @@ export const NewDataSource: React.FC = () => {
             ? 'Allows NYAI to alter the database schema to create the consent tables and store the consent records in both consent and actual tables.'
             : 'Allows NYAI to scan tables and identify PII columns for DPDP compliance.',
           validUpto: '2028-06-12',
-          audit: {
+          metadata: {
             ipAddress: '0.0.0.0',
             browser: {
               name: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Browser',
@@ -157,6 +157,7 @@ export const NewDataSource: React.FC = () => {
   };
 
   const handleNext = async () => {
+    if (loading) return;
     setError(null);
 
     if (step === 0) {
