@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PORT        = Number(process.env.PORT ?? 5001);
-const API_ORIGIN  = process.env.VITE_API_ORIGIN ?? 'https://dev.nyai.ai';
-const DEV_TOKEN   = process.env.VITE_DEV_TOKEN  ?? '';
+const PORT       = Number(process.env.PORT ?? 5001);
+const API_ORIGIN = process.env.VITE_API_ORIGIN ?? 'https://dev.nyai.ai';
+const DEV_TOKEN  = process.env.VITE_DEV_TOKEN  ?? '';
 
 const PROXY_PREFIXES = ['/data-engine', '/compliance-service'];
 
@@ -27,10 +27,23 @@ const MIME = {
 
 const DIST = path.join(__dirname, 'dist');
 
-function proxyRequest(req, res) {
-  const target   = new URL(API_ORIGIN);
-  const isHttps  = target.protocol === 'https:';
-  const lib      = isHttps ? https : http;
+// Buffer the full request body before proxying — required for POST/PUT
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end',  ()    => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+async function proxyRequest(req, res) {
+  const target  = new URL(API_ORIGIN);
+  const isHttps = target.protocol === 'https:';
+  const lib     = isHttps ? https : http;
+
+  // Buffer body first so content-length is accurate
+  const body = await readBody(req);
 
   // Forward or inject the access_token cookie
   let cookie = req.headers['cookie'] ?? '';
@@ -38,58 +51,70 @@ function proxyRequest(req, res) {
     cookie = cookie ? `${cookie}; access_token=${DEV_TOKEN}` : `access_token=${DEV_TOKEN}`;
   }
 
+  const forwardHeaders = {
+    'host':            target.hostname,
+    'cookie':          cookie,
+    'accept':          req.headers['accept'] ?? 'application/json',
+    'accept-encoding': 'identity',
+    'user-agent':      req.headers['user-agent'] ?? 'node-proxy',
+  };
+
+  if (body.length > 0) {
+    forwardHeaders['content-type']   = req.headers['content-type'] ?? 'application/json';
+    forwardHeaders['content-length'] = String(body.length);
+  }
+
+  // Forward any custom request headers (X-Request-Id, X-Timestamp, etc.)
+  for (const [k, v] of Object.entries(req.headers)) {
+    if (k.startsWith('x-') && !forwardHeaders[k]) forwardHeaders[k] = v;
+  }
+
   const options = {
     hostname: target.hostname,
     port:     target.port || (isHttps ? 443 : 80),
     path:     req.url,
     method:   req.method,
-    headers: {
-      ...req.headers,
-      host:   target.hostname,
-      cookie,
-    },
+    headers:  forwardHeaders,
   };
 
   const proxy = lib.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, proxyRes.headers);
+    console.log(`[proxy] ${req.method} ${req.url} → ${proxyRes.statusCode}`);
+    const safeHeaders = { ...proxyRes.headers };
+    delete safeHeaders['transfer-encoding'];
+    delete safeHeaders['connection'];
+    res.writeHead(proxyRes.statusCode, safeHeaders);
     proxyRes.pipe(res, { end: true });
   });
 
   proxy.on('error', (err) => {
     console.error('[proxy] error:', err.message);
-    res.writeHead(502);
-    res.end('Bad Gateway');
+    if (!res.headersSent) {
+      res.writeHead(502);
+      res.end('Bad Gateway');
+    }
   });
 
-  req.pipe(proxy, { end: true });
+  if (body.length > 0) proxy.write(body);
+  proxy.end();
 }
 
 function serveStatic(req, res) {
-  // Strip query string
   let urlPath = req.url.split('?')[0];
-
-  // Decode and normalise
   try { urlPath = decodeURIComponent(urlPath); } catch { /* keep as-is */ }
   urlPath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
-
-  let filePath = path.join(DIST, urlPath);
 
   const tryFile = (fp) => {
     try {
       const stat = fs.statSync(fp);
       if (stat.isDirectory()) return tryFile(path.join(fp, 'index.html'));
       const ext  = path.extname(fp).toLowerCase();
-      const mime = MIME[ext] ?? 'application/octet-stream';
-      res.writeHead(200, { 'Content-Type': mime });
+      res.writeHead(200, { 'Content-Type': MIME[ext] ?? 'application/octet-stream' });
       fs.createReadStream(fp).pipe(res);
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   };
 
-  if (!tryFile(filePath)) {
-    // SPA fallback
+  if (!tryFile(path.join(DIST, urlPath))) {
     const index = path.join(DIST, 'index.html');
     if (fs.existsSync(index)) {
       res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -103,7 +128,10 @@ function serveStatic(req, res) {
 
 const server = http.createServer((req, res) => {
   if (PROXY_PREFIXES.some(p => req.url.startsWith(p))) {
-    proxyRequest(req, res);
+    proxyRequest(req, res).catch(err => {
+      console.error('[proxy] unhandled error:', err.message);
+      if (!res.headersSent) { res.writeHead(502); res.end('Bad Gateway'); }
+    });
   } else {
     serveStatic(req, res);
   }
