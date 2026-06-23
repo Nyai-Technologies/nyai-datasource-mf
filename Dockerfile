@@ -19,4 +19,4 @@ USER appuser
 
 EXPOSE 5001
 
-ENTRYPOINT ["node", "server.mjs"]
+ENTRYPOINT ["node", "server.mjs", "preview", "--port", "5001", "--host", "0.0.0.0"]
