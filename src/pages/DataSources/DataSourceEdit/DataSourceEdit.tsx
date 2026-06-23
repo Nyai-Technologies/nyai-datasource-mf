@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api, type ApiDataSourceDetail, type UpdateDataSourcePayload } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
-import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Search, Plus, Download, Edit2, MoreVertical, Check, Filter } from 'lucide-react';
+import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { Button, Input, Textarea, Select, Checkbox, Accordion } from '../../../components/Components';
-import { CreateConsentModal, type PurposeEntry } from './CreateConsentModal/CreateConsentModal';
 // ── Types ──────────────────────────────────────────────────
-type Tab = 'basic' | 'connection' | 'database' | 'consent';
+type Tab = 'basic' | 'connection' | 'database';
 
 
 const DB_TABLES = [
@@ -41,37 +40,6 @@ const DB_COLUMNS: Record<string, { name: string; pii: boolean; description: stri
   ],
 };
 
-interface FullNotice {
-  id: string;
-  name: string;
-  table: string;
-  createdOn: string;
-  status: string;
-  columns: string[];
-  purposes: PurposeEntry[];
-}
-
-const DEFAULT_PURPOSES: PurposeEntry[] = [
-  { purpose: 'Order Processing and Fulfillment', retention: '1', unit: 'Year(s)',  categories: ['Full Name', 'Email', 'Phone Number', 'Date of Birth'] },
-  { purpose: 'Billing and Payment',              retention: '6', unit: 'Month(s)', categories: ['Billing Address', 'Payment Method'] },
-  { purpose: 'Delivery of Goods',                retention: '6', unit: 'Month(s)', categories: ['Shipping Address', 'City', 'Pincode'] },
-];
-
-const DEFAULT_COLUMNS = ['Full Name', 'Email', 'Phone Number', 'Date of Birth'];
-
-const fmtRetention = (retention: string, unit: string) => {
-  const base = unit.replace('(s)', '');          // "Year(s)" → "Year"
-  const n    = Number(retention);
-  return `${retention} ${n === 1 ? base : base + 's'}`; // "1 Year" / "6 Months"
-};
-
-const CONSENT_NOTICES: FullNotice[] = [
-  { id: '1', name: 'Customer Checkout Notice', table: 'Customers', createdOn: '02 Mar 2026, 18:42', status: 'Active',  columns: DEFAULT_COLUMNS, purposes: DEFAULT_PURPOSES },
-  { id: '2', name: 'Order History Notice',      table: 'Orders',   createdOn: '02 Mar 2026, 18:42', status: 'Draft',   columns: [], purposes: [] },
-  { id: '3', name: 'Address Book Notice',       table: 'Customer', createdOn: '02 Mar 2026, 18:42', status: 'Active',  columns: [], purposes: [] },
-  { id: '4', name: 'App Registration Notice',   table: 'Customers',createdOn: '02 Mar 2026, 18:42', status: 'Pending', columns: [], purposes: [] },
-  { id: '5', name: 'Loyalty Program Notice',    table: 'Customers',createdOn: '02 Mar 2026, 18:42', status: 'Draft',   columns: [], purposes: [] },
-];
 
 
 const JSON_TEMPLATE = `{
@@ -526,214 +494,11 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
   );
 };
 
-// ── Tab: Consent Notice ────────────────────────────────────
-const ConsentNoticeTab: React.FC = () => {
-  const [view, setView]               = useState<'list' | 'preview'>('list');
-  const [search, setSearch]           = useState('');
-  const [checkedRows, setCheckedRows] = useState<Set<number>>(new Set());
-  const [showModal, setShowModal]     = useState(false);
-  const [approveStatus, setApproveStatus] = useState<'idle' | 'approved' | 'approved-email'>('idle');
-  const [notices, setNotices]         = useState<FullNotice[]>(CONSENT_NOTICES);
-  const [previewNotice, setPreviewNotice] = useState<FullNotice | null>(null);
-
-  const toggleRow = (i: number) =>
-    setCheckedRows(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
-
-  const filtered = notices.filter(n => n.name.toLowerCase().includes(search.toLowerCase()));
-
-  const handleGenerate = (name: string, table: string, columns: string[], purposes: PurposeEntry[]) => {
-    const now = new Date();
-    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const createdOn = `${String(now.getDate()).padStart(2,'0')} ${MONTHS[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const newNotice: FullNotice = {
-      id: String(notices.length + 1),
-      name,
-      table: DB_TABLES.find(t => t.id === table)?.name ?? table,
-      createdOn,
-      status: 'Draft',
-      columns,
-      purposes,
-    };
-    setNotices(prev => [...prev, newNotice]);
-    setPreviewNotice(newNotice);
-    setApproveStatus('idle');
-    setCheckedRows(new Set());
-    setView('preview');
-  };
-
-  const openPreview = (notice: FullNotice) => {
-    setPreviewNotice(notice);
-    setApproveStatus('idle');
-    setCheckedRows(new Set());
-    setView('preview');
-  };
-
-  /* ── Preview ── */
-  if (view === 'preview' && previewNotice) {
-    const purposes = previewNotice.purposes.length > 0 ? previewNotice.purposes : DEFAULT_PURPOSES;
-    const cols     = previewNotice.columns.length > 0  ? previewNotice.columns  : DEFAULT_COLUMNS;
-
-    return (
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <span className="text-[14px] font-semibold text-[#374151]">Consent Notice Preview</span>
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-[6px] bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button"><Edit2 size={14} /> Edit</button>
-            <button className="flex items-center gap-[6px] bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button"><Download size={14} /> Download</button>
-          </div>
-        </div>
-
-        <div className="border border-[#b8c1d3] rounded-[8px] p-6">
-          <h2 className="text-center text-[18px] font-bold text-[#374151] mb-4">Customer Privacy Notice</h2>
-          <p className="text-[14px] text-[#374151] leading-[1.6] mb-5">
-            We process your personal data only when it is necessary to provide our services to you. By selecting "Accept All" or "Accept Selected", you consent to the processing of your personal data for the purposes listed below.
-          </p>
-
-          <table className="w-full border-collapse mb-5">
-            <thead>
-              <tr>
-                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]" style={{ width: 40 }}></th>
-                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Purpose</th>
-                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Data Categories</th>
-                <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[rgba(30,112,112,0.05)] border-b border-[#b8c1d3]">Retention Period</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purposes.map((p, i) => {
-                const cats = p.categories && p.categories.length > 0 ? p.categories : cols;
-                return (
-                  <tr key={i} className="[&_td]:border-b [&_td]:border-[#b8c1d3] last:[&_td]:border-b-0">
-                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">
-                      <Checkbox checked={checkedRows.has(i)} onChange={() => toggleRow(i)} />
-                    </td>
-                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top"><strong>{p.purpose}</strong></td>
-                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">
-                      <div className="flex items-center flex-wrap gap-2">
-                        {cats.map(c => <span key={c} className="inline-flex items-center gap-1 px-[10px] py-[2px] bg-[#e0f0fc] text-[#0066aa] text-[13px] rounded-full">• {c}</span>)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-[14px] text-[#374151] align-top">{fmtRetention(p.retention, p.unit)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <p className="text-[13px] text-[#9ca3af] leading-[1.6] mb-3">
-            To manage your consent or to submit a grievance on how we process your data, contact us at <a className="text-[#1e7070] underline" href="mailto:privacy@kothrudstore.com">privacy@kothrudstore.com</a>.
-          </p>
-          <p className="text-[13px] text-[#9ca3af] leading-[1.6] mb-3">
-            You can also submit your complaints to the Data Protection Board of India by e-mailing <a className="text-[#1e7070] underline" href="mailto:dpb@gov.in">dpb@gov.in</a>.
-          </p>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#b8c1d3] mt-4">
-            <button className="bg-transparent border-none cursor-pointer text-[14px] text-[#9ca3af] px-2 hover:text-[#374151]" type="button">Decline</button>
-            <Button variant="secondary" size="sm">Accept Selected</Button>
-            <Button size="sm">Accept All</Button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <button className="bg-transparent border-none cursor-pointer text-[14px] text-[#1e7070] p-0 hover:underline" type="button" onClick={() => setView('list')}>Back</button>
-          <div className="flex items-center gap-3">
-            {approveStatus !== 'idle' && (
-              <span className="flex items-center gap-2 text-[#16a34a] text-[14px] font-semibold">
-                <CheckCircle size={16} />
-                {approveStatus === 'approved-email' ? 'Approved & email sent' : 'Consent notice approved'}
-              </span>
-            )}
-            <Button variant="secondary" disabled={approveStatus !== 'idle'} onClick={() => setApproveStatus('approved')}>
-              {approveStatus !== 'idle' ? 'Approved' : 'Approve'}
-            </Button>
-            <Button disabled={approveStatus !== 'idle'} onClick={() => setApproveStatus('approved-email')}>
-              {approveStatus === 'approved-email' ? 'Email Sent' : 'Approve & Send Email'}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* ── List ── */
-  return (
-    <div>
-      {showModal && (
-        <CreateConsentModal
-          onClose={() => setShowModal(false)}
-          onGenerate={handleGenerate}
-          tables={DB_TABLES}
-          columns={DB_COLUMNS}
-        />
-      )}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 border border-[#b8c1d3] rounded-[6px] px-3 h-9 w-[280px] focus-within:border-[#1e7070]">
-          <Search size={15} className="text-[#9ca3af] flex-shrink-0" />
-          <input
-            className="flex-1 border-none outline-none text-[14px] text-[#374151] bg-transparent placeholder:text-[#9ca3af]"
-            placeholder="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" className="flex items-center gap-[6px] h-8 px-3 border border-[#e5e7eb] rounded-[6px] bg-white text-[13px] text-[#6b7280] cursor-pointer">
-            <Filter size={14} /> Filter
-          </button>
-          <Button size="sm" onClick={() => setShowModal(true)}>
-            <Plus size={14} /> New Consent Notice
-          </Button>
-        </div>
-      </div>
-
-      {(() => {
-        const statusClsMap: Record<string, string> = {
-          Active:  'bg-[#dcfce7] text-[#14532d]',
-          Draft:   'bg-[#f3f4f6] text-[#374151]',
-          Pending: 'bg-[#fef9c3] text-[#a16207]',
-        };
-        const thCls = 'text-left px-4 py-3 text-[13px] font-semibold text-[#374151] bg-[#f1f5f9] border-b border-[#b8c1d3]';
-        const tdCls = 'px-4 py-4 text-[14px] text-[#374151] border-b border-[#b8c1d3]';
-        return (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={thCls}>Name <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
-                <th className={thCls}>Table <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
-                <th className={thCls}>Status <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
-                <th className={thCls}>Created On <span className="text-[#9ca3af] ml-1 text-[11px]">⇅</span></th>
-                <th className={thCls} style={{ width: 48 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(n => (
-                <tr key={n.id} className="cursor-pointer [&:hover_td]:bg-[#f1f5f9] [&:last-child_td]:border-b-0" onClick={() => openPreview(n)}>
-                  <td className={tdCls}>{n.name}</td>
-                  <td className={tdCls}>{n.table}</td>
-                  <td className={tdCls}>
-                    <span className={`inline-flex items-center px-[10px] py-[2px] rounded-full text-[13px] font-semibold ${statusClsMap[n.status] ?? ''}`}>{n.status}</span>
-                  </td>
-                  <td className={tdCls}>{n.createdOn}</td>
-                  <td className={tdCls}>
-                    <button className="bg-transparent border-none cursor-pointer text-[#9ca3af] p-1 rounded-[4px] flex hover:bg-[#f1f5f9] hover:text-[#374151]" type="button" onClick={e => e.stopPropagation()}>
-                      <MoreVertical size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      })()}
-    </div>
-  );
-};
-
 // ── Main Edit Page ─────────────────────────────────────────
 const TABS = [
   { id: 'basic',      label: 'Basic Details'      },
   { id: 'connection', label: 'Connection Details'  },
   { id: 'database',   label: 'Database'            },
-  { id: 'consent',    label: 'Consent Notice'      },
 ];
 
 export const DataSourceEdit: React.FC = () => {
@@ -841,7 +606,6 @@ export const DataSourceEdit: React.FC = () => {
           />
         </div>
         <div style={{ display: activeTab === 'database' ? undefined : 'none' }}><DatabaseTab sourceName={sourceName} sourceId={id ?? ''} /></div>
-        <div style={{ display: activeTab === 'consent'  ? undefined : 'none' }}><ConsentNoticeTab /></div>
       </div>
 
       <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
