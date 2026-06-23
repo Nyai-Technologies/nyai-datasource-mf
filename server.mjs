@@ -6,11 +6,17 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PORT       = Number(process.env.PORT ?? 5001);
-const API_ORIGIN = process.env.VITE_API_ORIGIN ?? 'https://dev.nyai.ai';
-const DEV_TOKEN  = process.env.VITE_DEV_TOKEN  ?? '';
+const PORT          = Number(process.env.PORT ?? 5001);
+const API_ORIGIN    = process.env.VITE_API_ORIGIN      ?? 'https://dev.nyai.ai';
+const AUTH_ORIGIN   = process.env.VITE_AUTH_ORIGIN     ?? 'https://compliance.dev.nyai.ai';
+const DEV_TOKEN     = process.env.VITE_DEV_TOKEN       ?? '';
 
-const PROXY_PREFIXES = ['/data-engine', '/compliance-service'];
+// Routes and their upstream targets
+const PROXY_ROUTES = [
+  { prefix: '/api',              target: AUTH_ORIGIN,  injectToken: false },
+  { prefix: '/data-engine',      target: API_ORIGIN,   injectToken: true  },
+  { prefix: '/compliance-service', target: API_ORIGIN, injectToken: true  },
+];
 
 const MIME = {
   '.html': 'text/html',
@@ -37,18 +43,17 @@ function readBody(req) {
   });
 }
 
-async function proxyRequest(req, res) {
-  const target  = new URL(API_ORIGIN);
+async function proxyRequest(req, res, route) {
+  const target  = new URL(route.target);
   const isHttps = target.protocol === 'https:';
   const lib     = isHttps ? https : http;
 
   // Buffer body first so content-length is accurate
   const body = await readBody(req);
 
-  // Forward or inject the access_token cookie
+  // Inject access_token cookie only for routes that need it
   let cookie = req.headers['cookie'] ?? '';
-  if (!cookie.includes('access_token=')) {
-    // Prefer token sent explicitly by the frontend via X-Access-Token header
+  if (route.injectToken && !cookie.includes('access_token=')) {
     const headerToken = req.headers['x-access-token'] ?? DEV_TOKEN;
     if (headerToken) {
       cookie = cookie ? `${cookie}; access_token=${headerToken}` : `access_token=${headerToken}`;
@@ -131,8 +136,9 @@ function serveStatic(req, res) {
 }
 
 const server = http.createServer((req, res) => {
-  if (PROXY_PREFIXES.some(p => req.url.startsWith(p))) {
-    proxyRequest(req, res).catch(err => {
+  const route = PROXY_ROUTES.find(r => req.url.startsWith(r.prefix));
+  if (route) {
+    proxyRequest(req, res, route).catch(err => {
       console.error('[proxy] unhandled error:', err.message);
       if (!res.headersSent) { res.writeHead(502); res.end('Bad Gateway'); }
     });

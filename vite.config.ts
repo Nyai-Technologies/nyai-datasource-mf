@@ -31,11 +31,7 @@ export default defineConfig(({ mode }) => {
           './api': './src/lib/api.ts',
           './types': './src/types/types.ts',
         },
-        shared: {
-          react: { singleton: true, requiredVersion: '^19.0.0' },
-          'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
-          'react-router-dom': { singleton: true, requiredVersion: '^7.0.0' },
-        },
+        shared: ['react', 'react-dom', 'react-router-dom'],
       }),
     ],
     build: {
@@ -51,6 +47,17 @@ export default defineConfig(({ mode }) => {
       cors: true,
       origin: 'http://localhost:5001',
       proxy: {
+        '/api': {
+          target: env.VITE_AUTH_ORIGIN ?? 'https://compliance.dev.nyai.ai',
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.removeHeader('origin');
+              proxyReq.removeHeader('referer');
+            });
+          },
+        },
         '/data-engine': {
           ...proxyTarget,
           configure: (proxy) => {
