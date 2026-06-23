@@ -1,38 +1,83 @@
-import { useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, CheckCircle, Clock, FlaskConical, CircleDot } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
+import { DB_LOGOS, DB_BG } from '../../../assets/layout/dbLogos';
 import { FilterDropdown } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { FilterOption } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { DataSource } from '../../../types/types';
 import { api, type ApiDataSource } from '../../../lib/api';
 
+function TypeCell({ type }: { readonly type: string }) {
+  const key  = (type ?? '').toLowerCase();
+  const logo = DB_LOGOS[key];
+  const bg   = DB_BG[key] ?? '#f1f5f9';
+  const label = type ? type.charAt(0).toUpperCase() + type.slice(1) : '—';
+  return (
+    <div className="flex items-center gap-2">
+      {logo && (
+        <div className="w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
+          <img src={logo} alt={label} className="w-4 h-4 object-contain" />
+        </div>
+      )}
+      <span>{label}</span>
+    </div>
+  );
+}
+
+const STATUS_META: Record<DataSource['status'], { label: string; icon: React.ReactNode; dot: string; text: string; bg: string }> = {
+  completed:        { label: 'Completed',        icon: <CheckCircle  size={13} />, dot: '#16a34a', text: '#15803d', bg: '#f0fdf4' },
+  sample_collected: { label: 'Sample Collected', icon: <FlaskConical size={13} />, dot: '#2563eb', text: '#1d4ed8', bg: '#eff6ff' },
+  created:          { label: 'Created',           icon: <CircleDot    size={13} />, dot: '#9ca3af', text: '#6b7280', bg: '#f9fafb' },
+  pending:          { label: 'Pending',           icon: <Clock        size={13} />, dot: '#d97706', text: '#b45309', bg: '#fffbeb' },
+};
+
+function StatusCell({ status }: { readonly status: DataSource['status'] }) {
+  const meta = STATUS_META[status] ?? STATUS_META.pending;
+  return (
+    <span
+      className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full text-[12px] font-medium"
+      style={{ background: meta.bg, color: meta.text }}
+    >
+      <span style={{ color: meta.dot }}>{meta.icon}</span>
+      {meta.label}
+    </span>
+  );
+}
+
 const STATUS_OPTIONS: FilterOption[] = [
-  { value: '',        label: 'All Status'  },
-  { value: 'valid',   label: 'Completed'   },
-  { value: 'pending', label: 'Pending'     },
+  { value: '',                 label: 'All Status'       },
+  { value: 'completed',        label: 'Completed'        },
+  { value: 'sample_collected', label: 'Sample Collected' },
+  { value: 'created',          label: 'Created'          },
+  { value: 'pending',          label: 'Pending'          },
 ];
 
 const TYPE_OPTIONS: FilterOption[] = [
   { value: '',           label: 'All Types'  },
   { value: 'PostgreSQL', label: 'PostgreSQL' },
+  { value: 'Postgres',   label: 'Postgres'   },
   { value: 'MySQL',      label: 'MySQL'      },
   { value: 'MongoDB',    label: 'MongoDB'    },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {
   const statusMap: Record<string, DataSource['status']> = {
-    SAMPLE_COLLECTED: 'valid',
-    CREATED:          'pending',
+    COMPLETED:        'completed',
+    SAMPLE_COLLECTED: 'sample_collected',
+    CREATED:          'created',
   };
+  const lastSynced = src.updated_at
+    ? new Date(src.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
   return {
     id:         src.id,
     appName:    src.app_name,
     name:       src.name,
     status:     statusMap[src.status] ?? 'pending',
     type:       src.type,
-    lastSynced: '—',
+    lastSynced,
     addedBy:    src.created_by,
   };
 }
@@ -136,8 +181,8 @@ export const DataSourcesList = () => {
 
   const columns = [
     { key: 'name',       label: 'Data Source', sortable: true },
-    { key: 'status',     label: 'Status' },
-    { key: 'type',       label: 'Type',        sortable: true },
+    { key: 'status',     label: 'Status',      render: (val: unknown) => <StatusCell status={val as DataSource['status']} /> },
+    { key: 'type',       label: 'Type',        sortable: true, render: (val: unknown) => <TypeCell type={String(val ?? '')} /> },
     { key: 'lastSynced', label: 'Last Synced', sortable: true },
     { key: 'addedBy',    label: 'Added By',    sortable: true },
     {
