@@ -13,7 +13,7 @@ const DEV_TOKEN     = process.env.VITE_DEV_TOKEN       ?? '';
 
 // Routes and their upstream targets
 const PROXY_ROUTES = [
-  { prefix: '/api',              target: AUTH_ORIGIN,  injectToken: false },
+  { prefix: '/api/',             target: AUTH_ORIGIN,  injectToken: false },
   { prefix: '/data-engine',      target: API_ORIGIN,   injectToken: true  },
   { prefix: '/compliance-service', target: API_ORIGIN, injectToken: true  },
 ];
