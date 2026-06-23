@@ -54,7 +54,9 @@ async function proxyRequest(req, res, route) {
   // Inject access_token cookie only for routes that need it
   let cookie = req.headers['cookie'] ?? '';
   if (route.injectToken && !cookie.includes('access_token=')) {
-    const headerToken = req.headers['x-access-token'] ?? DEV_TOKEN;
+    const authHeader = req.headers['authorization'] ?? '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const headerToken = req.headers['x-access-token'] ?? bearerToken ?? DEV_TOKEN;
     if (headerToken) {
       cookie = cookie ? `${cookie}; access_token=${headerToken}` : `access_token=${headerToken}`;
     }
@@ -149,5 +151,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[server] listening on http://0.0.0.0:${PORT}`);
-  console.log(`[server] proxying ${PROXY_ROUTES.map(r => `${r.prefix} → ${r.target}`).join(', ')}`);
+  const routes = PROXY_ROUTES.map(r => r.prefix + ' → ' + r.target).join(', ');
+  console.log('[server] proxying ' + routes);
 });
