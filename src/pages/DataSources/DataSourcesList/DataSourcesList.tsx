@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreVertical, CheckCircle, Clock, FlaskConical, CircleDot } from 'lucide-react';
+import { CheckCircle, FlaskConical, CircleDot, Pencil, Trash2 } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
 import { DB_LOGOS, DB_BG } from '../../../assets/layout/dbLogos';
@@ -30,11 +30,10 @@ const STATUS_META: Record<DataSource['status'], { label: string; icon: React.Rea
   completed:        { label: 'Completed',        icon: <CheckCircle  size={13} />, dot: '#16a34a', text: '#15803d', bg: '#f0fdf4' },
   sample_collected: { label: 'Sample Collected', icon: <FlaskConical size={13} />, dot: '#2563eb', text: '#1d4ed8', bg: '#eff6ff' },
   created:          { label: 'Created',           icon: <CircleDot    size={13} />, dot: '#9ca3af', text: '#6b7280', bg: '#f9fafb' },
-  pending:          { label: 'Pending',           icon: <Clock        size={13} />, dot: '#d97706', text: '#b45309', bg: '#fffbeb' },
 };
 
 function StatusCell({ status }: { readonly status: DataSource['status'] }) {
-  const meta = STATUS_META[status] ?? STATUS_META.pending;
+  const meta = STATUS_META[status] ?? STATUS_META.created;
   return (
     <span
       className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full text-[12px] font-medium"
@@ -51,7 +50,6 @@ const STATUS_OPTIONS: FilterOption[] = [
   { value: 'completed',        label: 'Completed'        },
   { value: 'sample_collected', label: 'Sample Collected' },
   { value: 'created',          label: 'Created'          },
-  { value: 'pending',          label: 'Pending'          },
 ];
 
 const TYPE_OPTIONS: FilterOption[] = [
@@ -75,7 +73,7 @@ function mapApiDataSource(src: ApiDataSource): DataSource {
     id:         src.id,
     appName:    src.app_name,
     name:       src.name,
-    status:     statusMap[src.status] ?? 'pending',
+    status:     statusMap[src.status] ?? 'created',
     type:       src.type,
     lastSynced,
     addedBy:    src.created_by,
@@ -100,33 +98,42 @@ function RowMenu({ onEdit, onDelete, disabled }: {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative flex items-center justify-end">
+    <div ref={ref} className="relative">
       <button
         type="button"
         disabled={disabled}
-        className="flex items-center justify-center w-8 h-8 rounded-[4px] text-[#6b7280] bg-transparent border-none cursor-pointer hover:bg-[#f1f5f9] hover:text-[#1e7070] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="w-7 h-7 flex items-center justify-center rounded text-gray-400 bg-transparent border-none cursor-pointer hover:bg-gray-100 hover:text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
       >
-        <MoreVertical size={16} />
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 z-50 min-w-[110px] bg-white border border-[#e5e7eb] rounded-[6px] shadow-md py-1 overflow-hidden">
-          <button
-            type="button"
-            className="w-full px-4 py-2 text-left text-[13px] text-[#374151] hover:bg-[#f9fafb] transition-colors"
-            onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="w-full px-4 py-2 text-left text-[13px] text-[#dc2626] hover:bg-[#fef2f2] transition-colors"
-            onClick={e => { e.stopPropagation(); setOpen(false); onDelete(); }}
-          >
-            Delete
-          </button>
-        </div>
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-40" style={{ minWidth: 160 }}>
+            <div className="rounded-[10px] overflow-hidden" style={{ background: '#1e5f6e' }}>
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
+              >
+                <Pencil size={18} strokeWidth={1.8} />
+                Edit
+              </button>
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={e => { e.stopPropagation(); setOpen(false); onDelete(); }}
+              >
+                <Trash2 size={18} strokeWidth={1.8} />
+                Delete
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -227,7 +234,7 @@ export const DataSourcesList = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="flex items-center gap-[6px] h-9 px-3 border border-[#b8c1d3] rounded-[6px] bg-white text-[14px] text-[#6b7280] cursor-pointer transition-all hover:border-[#d1d5db] hover:text-[#1a2030] [&>svg]:w-[14px] [&>svg]:h-[14px]"
+            className="flex items-center gap-1.5 h-9 px-3 border border-gray-200 rounded-lg bg-white text-sm text-gray-600 cursor-pointer transition-colors hover:border-gray-400 hover:text-gray-800 [&>svg]:w-[14px] [&>svg]:h-[14px]"
             onClick={handleSync}
             disabled={syncing}
           >
@@ -239,7 +246,7 @@ export const DataSourcesList = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-[8px] flex-1 flex flex-col overflow-hidden">
+      <div className="bg-white flex-1 flex flex-col overflow-hidden">
         {apiError && (
           <div className="px-4 py-3 bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[13px] mb-2">
             {apiError}
