@@ -376,22 +376,48 @@ async function authRequest<T>(path: string, body?: unknown): Promise<T> {
       ?? `Request failed (${res.status})`;
     throw new Error(msg);
   }
+  // Store token from response body so subsequent API calls can send it
+  const token = (json as Record<string, string>).access_token
+    ?? (json as Record<string, string>).accessToken
+    ?? (json as Record<string, string>).token
+    ?? '';
+  if (token) {
+    sessionStorage.setItem('nyai_access_token', token);
+    localStorage.setItem('access_token', token);
+  }
   return json as T;
 }
 
 export const auth = {
-  login: (email: string, password: string) =>
-    authRequest<AuthUser>('/auth/login', { email, password }),
+  async login(email: string, password: string): Promise<AuthUser> {
+    const json = await authRequest<Record<string, unknown>>('/auth/login', { email, password });
+    // Extract user fields from the login response directly
+    return {
+      id:         String(json.sub ?? json.id ?? json.userId ?? ''),
+      email:      String(json.email ?? email),
+      firstName:  String(json.firstName ?? json.first_name ?? json.given_name ?? ''),
+      lastName:   String(json.lastName  ?? json.last_name  ?? json.family_name ?? ''),
+      entityName: String(json.entityName ?? json.entity_name ?? ''),
+    };
+  },
 
   register: (email: string, password: string, firstName: string, lastName: string, entityName: string) =>
     authRequest<AuthUser>('/auth/register', { email, password, firstName, lastName, entityName }),
 
   async logout(): Promise<void> {
     await fetch(`${AUTH_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+    sessionStorage.removeItem('nyai_access_token');
+    localStorage.removeItem('access_token');
   },
 
   async me(): Promise<AuthUser> {
-    const res = await fetch(`${AUTH_BASE}/auth/me`, { credentials: 'include' });
+    // Use stored token to verify session is still valid
+    const token = sessionStorage.getItem('nyai_access_token') ?? localStorage.getItem('access_token') ?? '';
+    if (!token) throw new Error('Unauthenticated');
+    const res = await fetch(`${AUTH_BASE}/auth/me`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) throw new Error('Unauthenticated');
     return res.json() as Promise<AuthUser>;
   },
