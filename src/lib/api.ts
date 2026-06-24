@@ -1,6 +1,4 @@
-// AUTH_BASE stays same-origin (proxied by server.mjs /api/ → compliance service)
 const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
-// DATA_BASE uses absolute URL in production so requests go to datasource-mf domain
 const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 
