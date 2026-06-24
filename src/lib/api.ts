@@ -7,6 +7,8 @@ const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 function buildHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
+    'X-Request-Id': crypto.randomUUID(),
+    'X-Timestamp': new Date().toISOString(),
   };
 }
 
