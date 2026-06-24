@@ -15,6 +15,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    const storedToken = sessionStorage.getItem('nyai_access_token') ?? localStorage.getItem('access_token') ?? '';
+    if (!storedToken) { setChecking(false); return; }
     auth.me()
       .then(data => setUser(data))
       .catch(() => setUser(null))
@@ -22,9 +24,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    await auth.login(email, password);
-    const me = await auth.me().catch(() => null);
-    setUser(me);
+    const user = await auth.login(email, password);
+    setUser(user);
   };
 
   const logout = async () => {

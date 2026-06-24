@@ -1,24 +1,13 @@
-const AUTH_BASE = `${import.meta.env.VITE_API_BASE ?? ''}/api/v1`;
+const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
 const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
-function getToken(): string {
-  // Cookie is scoped to dev.nyai.ai — read from localStorage where the shell stores it
-  const fromStorage = localStorage.getItem('access_token') ?? localStorage.getItem('token') ?? '';
-  if (fromStorage) return fromStorage;
-  // Fallback: parse from document.cookie (works when same domain)
-  const match = /(?:^|;\s*)access_token=([^;]+)/.exec(document.cookie);
-  return match ? decodeURIComponent(match[1]) : '';
-}
 
 function buildHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
+  return {
     'Content-Type': 'application/json',
     'X-Request-Id': crypto.randomUUID(),
     'X-Timestamp': new Date().toISOString(),
   };
-  const token = getToken();
-  if (token) headers['X-Access-Token'] = token;
-  return headers;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -28,6 +17,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(url, {
     ...init,
     credentials: 'include',
+    cache: 'no-store',
     headers: buildHeaders(),
   });
 
@@ -54,6 +44,7 @@ export interface ApiDataSource {
   app_name: string;
   status: string;
   created_by: string;
+  updated_at?: string;
 }
 
 export interface ApiDataSourceDetail {
@@ -171,6 +162,7 @@ export interface PiiAttribute {
   isPii?: boolean;
   pii?: boolean;
   is_pii?: boolean;
+  dataCategories?: string[] | null;
 }
 
 export interface PiiDataObject {
@@ -221,11 +213,7 @@ export interface ApiLanguage {
   code?: string;
 }
 
-export interface ApiDataCategory {
-  id: string;
-  name: string;
-  description?: string;
-}
+export type ApiDataCategory = string;
 
 
 export interface ApiConsent {
@@ -266,18 +254,32 @@ export const api = {
 
   async getDataSource(id: string): Promise<ApiDataSourceDetail> {
     const res = await request<unknown>(`/datasource/${id}`);
-    // Unwrap common envelope patterns: { data: {...} }, { datasource: {...} }, { result: {...} }
-    if (res && typeof res === 'object' && !('id' in res)) {
+    console.log('[API] getDataSource raw:', JSON.stringify(res));
+
+    let obj = res as Record<string, unknown>;
+
+    // Unwrap common envelope patterns
+    if (obj && typeof obj === 'object' && !('id' in obj)) {
       for (const key of ['data', 'datasource', 'result', 'source', 'responseMessage']) {
-        const v = (res as Record<string, unknown>)[key];
-        if (v && typeof v === 'object' && 'id' in v) {
-          console.log(`[API] getDataSource unwrapped from "${key}":`, v);
-          return v as ApiDataSourceDetail;
+        const v = obj[key];
+        if (v && typeof v === 'object' && 'id' in (v as object)) {
+          obj = v as Record<string, unknown>;
+          break;
         }
       }
     }
-    console.log('[API] getDataSource raw:', res);
-    return res as ApiDataSourceDetail;
+
+    // Flatten nested connectionDetails / connection block into top level
+    for (const key of ['connectionDetails', 'connection', 'connectionInfo', 'dbConnection']) {
+      const nested = obj[key];
+      if (nested && typeof nested === 'object') {
+        obj = { ...obj, ...(nested as Record<string, unknown>) };
+        break;
+      }
+    }
+
+    console.log('[API] getDataSource resolved:', JSON.stringify(obj));
+    return obj as unknown as ApiDataSourceDetail;
   },
 
   discoverDatabase(payload: DiscoverPayload): Promise<DiscoverResponse> {
@@ -321,6 +323,7 @@ export const api = {
 
   async listDataCategories(): Promise<ApiDataCategory[]> {
     const res = await request<unknown>('/attributes/data-category');
+    if (Array.isArray(res)) return res as string[];
     return toArray<ApiDataCategory>(res);
   },
 };
@@ -351,22 +354,48 @@ async function authRequest<T>(path: string, body?: unknown): Promise<T> {
       ?? `Request failed (${res.status})`;
     throw new Error(msg);
   }
+  // Store token from response body so subsequent API calls can send it
+  const token = (json as Record<string, string>).access_token
+    ?? (json as Record<string, string>).accessToken
+    ?? (json as Record<string, string>).token
+    ?? '';
+  if (token) {
+    sessionStorage.setItem('nyai_access_token', token);
+    localStorage.setItem('access_token', token);
+  }
   return json as T;
 }
 
 export const auth = {
-  login: (email: string, password: string) =>
-    authRequest<AuthUser>('/auth/login', { email, password }),
+  async login(email: string, password: string): Promise<AuthUser> {
+    const json = await authRequest<Record<string, unknown>>('/auth/login', { email, password });
+    // Extract user fields from the login response directly
+    return {
+      id:         String(json.sub ?? json.id ?? json.userId ?? ''),
+      email:      String(json.email ?? email),
+      firstName:  String(json.firstName ?? json.first_name ?? json.given_name ?? ''),
+      lastName:   String(json.lastName  ?? json.last_name  ?? json.family_name ?? ''),
+      entityName: String(json.entityName ?? json.entity_name ?? ''),
+    };
+  },
 
   register: (email: string, password: string, firstName: string, lastName: string, entityName: string) =>
     authRequest<AuthUser>('/auth/register', { email, password, firstName, lastName, entityName }),
 
   async logout(): Promise<void> {
     await fetch(`${AUTH_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+    sessionStorage.removeItem('nyai_access_token');
+    localStorage.removeItem('access_token');
   },
 
   async me(): Promise<AuthUser> {
-    const res = await fetch(`${AUTH_BASE}/auth/me`, { credentials: 'include' });
+    // Use stored token to verify session is still valid
+    const token = sessionStorage.getItem('nyai_access_token') ?? localStorage.getItem('access_token') ?? '';
+    if (!token) throw new Error('Unauthenticated');
+    const res = await fetch(`${AUTH_BASE}/auth/me`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) throw new Error('Unauthenticated');
     return res.json() as Promise<AuthUser>;
   },

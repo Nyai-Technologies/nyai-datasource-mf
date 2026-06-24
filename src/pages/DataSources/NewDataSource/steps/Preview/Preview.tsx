@@ -39,7 +39,22 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
   }, [selectedTables, selectedCols]);
 
   const toggleTable = (id: string) => {
-    setSelectedTables(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSelectedTables(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) {
+        n.delete(id);
+        // deselect all columns belonging to this table
+        const tableCols = schema.find(t => t.tableName === id)?.columns.map(c => c.name) ?? [];
+        setSelectedCols(prevCols => {
+          const nc = new Set(prevCols);
+          tableCols.forEach(c => nc.delete(c));
+          return nc;
+        });
+      } else {
+        n.add(id);
+      }
+      return n;
+    });
   };
 
   const toggleCol = (col: string) => {
@@ -67,7 +82,10 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
         <div className={headerCls}>
           <Checkbox
             checked={allTablesSelected}
-            onChange={v => setSelectedTables(v ? new Set(schema.map(t => t.tableName)) : new Set())}
+            onChange={v => {
+              setSelectedTables(v ? new Set(schema.map(t => t.tableName)) : new Set());
+              if (!v) setSelectedCols(new Set());
+            }}
           />
           <span>Tables</span>
         </div>

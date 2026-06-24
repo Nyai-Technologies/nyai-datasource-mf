@@ -18,14 +18,10 @@ interface TableProps<T extends { id: string }> {
 
 function SortIcons({ active, dir }: { active: boolean; dir: 'asc' | 'desc' | null }) {
   return (
-    <span className={`flex flex-col gap-[1px] transition-opacity ${active ? 'opacity-100' : 'opacity-35'}`}>
-      <svg viewBox="0 0 10 6" className="w-2 h-2" fill={active && dir === 'asc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-        <path d="M1 5l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <svg viewBox="0 0 10 6" className="w-2 h-2" fill={active && dir === 'desc' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-        <path d="M1 1l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
+    <svg className="w-3.5 h-3.5 inline ml-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 9l4-4 4 4" className={active && dir === 'asc' ? 'opacity-100' : 'opacity-30'} />
+      <path d="M8 15l4 4 4-4" className={active && dir === 'desc' ? 'opacity-100' : 'opacity-30'} />
+    </svg>
   );
 }
 
@@ -51,14 +47,14 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-[14px]">
         <thead>
-          <tr>
+          <tr className="bg-[#eef4f2] border-b border-gray-200">
             {columns.map(col => {
               const key = String(col.key);
               const active = sort.key === key;
               return (
-                <th key={key} className="px-4 py-3 bg-[#f0f5f5] text-[#1a2030] font-semibold text-[12px] text-left whitespace-nowrap border-b border-[#b8c1d3]">
+                <th key={key} className="px-5 py-3 text-left text-[13px] font-medium text-gray-600 whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center gap-[6px] ${col.sortable ? 'cursor-pointer select-none' : 'cursor-default'} ${active ? '[&>span]:opacity-100' : ''}`}
+                    className={col.sortable ? 'cursor-pointer select-none' : 'cursor-default'}
                     onClick={() => col.sortable && handleSort(key)}
                   >
                     {col.label}
@@ -67,20 +63,20 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 </th>
               );
             })}
-            {onAction && <th className="px-4 py-3 bg-[#f0f5f5] border-b border-[#b8c1d3]" />}
+            {onAction && <th className="px-3 py-3 w-10 bg-[#eef4f2]" />}
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (onAction ? 1 : 0)} className="py-12 px-4 text-center text-[#9ca3af] text-[14px]">
+              <td colSpan={columns.length + (onAction ? 1 : 0)} className="py-12 px-5 text-center text-gray-400 text-[14px]">
                 No data found.
               </td>
             </tr>
           ) : sorted.map(row => (
             <tr
               key={row.id}
-              className="transition-colors [&:hover_td]:bg-[#f8fafc] [&:last-child_td]:border-b-0"
+              className="border-b border-gray-300 hover:bg-gray-50 transition-colors"
               style={onRowClick ? { cursor: 'pointer' } : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
@@ -88,7 +84,7 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 const key = String(col.key);
                 const val = (row as Record<string, unknown>)[key];
                 return (
-                  <td key={key} className="px-4 py-3 text-[#1a2030] border-b border-[#b8c1d3] align-middle first:font-medium">
+                  <td key={key} className="px-5 py-3.5 text-gray-800 align-middle first:font-medium">
                     {col.render ? col.render(val, row) : (
                       key === 'status' ? (
                         <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border-2 border-[#22c55e]">
@@ -100,9 +96,9 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 );
               })}
               {onAction && (
-                <td className="px-4 py-3 text-[#1a2030] border-b border-[#b8c1d3] align-middle">
+                <td className="px-3 py-3.5 text-gray-800 align-middle" onClick={e => e.stopPropagation()}>
                   <button
-                    className="bg-transparent border-none cursor-pointer text-[#9ca3af] p-1 rounded-[3px] transition-all hover:text-[#1a2030] hover:bg-[#f1f5f9]"
+                    className="bg-transparent border-none cursor-pointer text-gray-400 p-1 rounded transition-all hover:text-gray-600 hover:bg-gray-100"
                     onClick={e => { e.stopPropagation(); onAction(row); }}
                   >
                     <MoreVertical size={16} />

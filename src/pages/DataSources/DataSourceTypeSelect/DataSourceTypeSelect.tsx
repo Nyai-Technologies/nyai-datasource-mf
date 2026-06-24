@@ -1,23 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import postgresqlLogo from '../../../assets/layout/img/postgresql logo.svg';
-import mysqlLogo from '../../../assets/layout/img/mysql logo.svg';
-import mongodbLogo from '../../../assets/layout/img/mongodb logo.svg';
-import databricksLogo from '../../../assets/layout/img/databricks logo.svg';
-import redshiftLogo from '../../../assets/layout/img/redshift logo.svg';
-import redisLogo from '../../../assets/layout/img/redis logo.svg';
-import snowflakeLogo from '../../../assets/layout/img/snowflake logo.svg';
-import oracleLogo from '../../../assets/layout/img/oracle logo.svg';
+import { DB_LOGOS, DB_BG } from '../../../assets/layout/dbLogos';
 
 const DB_TYPES = [
-  { id: 'postgresql', name: 'PostgreSQL', bg: '#e8f0fb', logo: postgresqlLogo },
-  { id: 'mysql',      name: 'MySQL',      bg: '#e8f0fb', logo: mysqlLogo },
-  { id: 'mongodb',    name: 'MongoDB',    bg: '#e8f6e8', logo: mongodbLogo },
-  { id: 'databricks', name: 'Databricks', bg: '#fdecea', logo: databricksLogo },
-  { id: 'redshift',   name: 'Redshift',   bg: '#e8f0fb', logo: redshiftLogo },
-  { id: 'redis',      name: 'Redis',      bg: '#fdecea', logo: redisLogo },
-  { id: 'snowflake',  name: 'Snowflake',  bg: '#e8f6fc', logo: snowflakeLogo },
-  { id: 'oracle',     name: 'Oracle',     bg: '#fdecea', logo: oracleLogo },
+  { id: 'postgresql', name: 'PostgreSQL' },
+  { id: 'mysql',      name: 'MySQL'      },
+  { id: 'mongodb',    name: 'MongoDB'    },
+  { id: 'databricks', name: 'Databricks' },
+  { id: 'redshift',   name: 'Redshift'   },
+  { id: 'redis',      name: 'Redis'      },
+  { id: 'snowflake',  name: 'Snowflake'  },
+  { id: 'oracle',     name: 'Oracle'     },
 ];
 
 export const DataSourceTypeSelect = () => {
@@ -55,9 +48,9 @@ export const DataSourceTypeSelect = () => {
             >
               <div
                 className="w-9 h-9 rounded-[6px] flex items-center justify-center flex-shrink-0"
-                style={{ background: db.bg }}
+                style={{ background: DB_BG[db.id] ?? '#f1f5f9' }}
               >
-                <img src={db.logo} alt={db.name} className="w-6 h-6 object-contain" />
+                <img src={DB_LOGOS[db.id]} alt={db.name} className="w-6 h-6 object-contain" />
               </div>
               <span className="text-[14px] font-medium text-[#1a2030]">{db.name}</span>
               {!enabled && (
