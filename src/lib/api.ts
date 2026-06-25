@@ -3,17 +3,27 @@ const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 
 function getToken(): string {
-  // Try sessionStorage first (set by dpdpa-app shell after login)
+  // Read access_token from sessionStorage, cookie, or localStorage (in priority order)
   const ss = sessionStorage.getItem('nyai_access_token') ?? '';
   if (ss) return ss;
-  // Fallback: read nyai_tok cookie (set by dpdpa-app api.js)
-  const m = /(?:^|;\s*)nyai_tok=([^;]*)/.exec(document.cookie);
-  if (m) return decodeURIComponent(m[1]);
-  // Fallback: localStorage
+  const ck = /(?:^|;\s*)access_token=([^;]*)/.exec(document.cookie);
+  if (ck) return decodeURIComponent(ck[1]);
   return localStorage.getItem('access_token') ?? '';
 }
 
+function ensureAccessTokenCookie(): void {
+  // Backend requires cookie named 'access_token' — mirror dpdpa-app exactly
+  const ck = /(?:^|;\s*)access_token=([^;]*)/.exec(document.cookie);
+  if (ck) return;
+  const token = getToken();
+  if (!token) return;
+  const host   = globalThis.location?.hostname ?? '';
+  const secure = host === 'localhost' ? '' : '; Secure';
+  document.cookie = `access_token=${encodeURIComponent(token)}; path=/; SameSite=Lax${secure}`;
+}
+
 function buildHeaders(): Record<string, string> {
+  ensureAccessTokenCookie();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Request-Id': crypto.randomUUID(),
