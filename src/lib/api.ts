@@ -12,14 +12,17 @@ function getToken(): string {
 }
 
 function ensureAccessTokenCookie(): void {
-  // Backend requires cookie named 'access_token' — mirror dpdpa-app exactly
+  // Backend at dev.nyai.ai requires cookie 'access_token'.
+  // Write it with domain=.nyai.ai + SameSite=None so it is sent cross-subdomain.
   const ck = /(?:^|;\s*)access_token=([^;]*)/.exec(document.cookie);
   if (ck) return;
   const token = getToken();
   if (!token) return;
-  const host   = globalThis.location?.hostname ?? '';
-  const secure = host === 'localhost' ? '' : '; Secure';
-  document.cookie = `access_token=${encodeURIComponent(token)}; path=/; SameSite=Lax${secure}`;
+  const host     = globalThis.location?.hostname ?? '';
+  const isLocal  = host === 'localhost' || host === '127.0.0.1';
+  const domain   = isLocal ? '' : '; domain=.nyai.ai';
+  const secure   = isLocal ? '' : '; Secure';
+  document.cookie = `access_token=${encodeURIComponent(token)}; path=/${domain}; SameSite=None${secure}`;
 }
 
 function buildHeaders(): Record<string, string> {
