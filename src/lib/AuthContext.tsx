@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const storedToken = sessionStorage.getItem('nyai_access_token') ?? localStorage.getItem('access_token') ?? '';
     if (!storedToken) { setChecking(false); return; }
+    writeAccessTokenCookie(storedToken);
     auth.me()
       .then(data => setUser(data))
       .catch(() => setUser(null))
