@@ -49,6 +49,11 @@ export default defineConfig(({ mode }) => {
     preview: {
       allowedHosts: ['datasource-mf-dev.nyai.ai'],
       cors: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
       proxy: {
         '/api': {
           target: env.VITE_AUTH_ORIGIN ?? 'https://compliance.dev.nyai.ai',
