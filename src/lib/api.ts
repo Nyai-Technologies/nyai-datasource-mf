@@ -11,22 +11,16 @@ function getToken(): string {
   return localStorage.getItem('access_token') ?? '';
 }
 
-function ensureAccessTokenCookie(): void {
-  // Backend at dev.nyai.ai requires cookie 'access_token'.
-  // Write it with domain=.nyai.ai + SameSite=None so it is sent cross-subdomain.
-  const ck = /(?:^|;\s*)access_token=([^;]*)/.exec(document.cookie);
-  if (ck) return;
-  const token = getToken();
+export function writeAccessTokenCookie(token: string): void {
   if (!token) return;
-  const host     = globalThis.location?.hostname ?? '';
-  const isLocal  = host === 'localhost' || host === '127.0.0.1';
-  const domain   = isLocal ? '' : '; domain=.nyai.ai';
-  const secure   = isLocal ? '' : '; Secure';
+  const host    = globalThis.location?.hostname ?? '';
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  const domain  = isLocal ? '' : '; domain=.nyai.ai';
+  const secure  = isLocal ? '' : '; Secure';
   document.cookie = `access_token=${encodeURIComponent(token)}; path=/${domain}; SameSite=None${secure}`;
 }
 
 function buildHeaders(): Record<string, string> {
-  ensureAccessTokenCookie();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Request-Id': crypto.randomUUID(),
@@ -389,6 +383,7 @@ async function authRequest<T>(path: string, body?: unknown): Promise<T> {
   if (token) {
     sessionStorage.setItem('nyai_access_token', token);
     localStorage.setItem('access_token', token);
+    writeAccessTokenCookie(token);
   }
   return json as T;
 }
