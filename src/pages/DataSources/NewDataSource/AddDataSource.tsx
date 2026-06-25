@@ -126,14 +126,17 @@ export const NewDataSource: React.FC = () => {
 
       const result = await api.discoverDatabase(payload);
       const tables = parseDiscoverTables(result);
-      setDatasourceId(result.datasourceId);
+      const dsId   = result.datasourceId;
+      setDatasourceId(dsId);
       setSchema(tables);
-      setSelectedTables(
-        tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) })),
-      );
+      const allSelected = tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) }));
+      setSelectedTables(allSelected);
+      // Mark as SAMPLE_COLLECTED immediately after successful connection
+      await api.processMetadata(dsId, { tables: allSelected, operations: ['PII'] });
       setStep(2);
-    } catch {
-      setError('Connection failed. Please check your credentials and try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Connection failed: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -144,10 +147,8 @@ export const NewDataSource: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await api.processMetadata(datasourceId, {
-        tables: selectedTables.map(t => ({ tableName: t.tableName, columns: [] })),
-        operations: ['PII'],
-      });
+      // PII already called after test connection — just send updated selection and mark complete
+      await api.processMetadata(datasourceId, { tables: selectedTables, operations: ['PII'] });
       navigate('/data-sources');
     } catch {
       setError('Failed to save data source. Please try again.');

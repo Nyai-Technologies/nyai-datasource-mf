@@ -322,7 +322,11 @@ const ConnectionDetailsTab = forwardRef<
 interface ColData { id: string; name: string; description: string; dataCategories?: string[] | null; }
 interface TableData { id: string; name: string; columns: ColData[]; }
 
-const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourceName, sourceId }) => {
+export interface DatabaseTabHandle {
+  getPiiPayload: () => { tableName: string; columns: string[] }[];
+}
+
+const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId: string }>(({ sourceName, sourceId }, ref) => {
   const [dbName, setDbName]     = useState('');
   const [tables, setTables]     = useState<TableData[]>([]);
   const [activeId, setActiveId] = useState('');
@@ -331,6 +335,13 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
   const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // piiMap: `${tableId}__${colId}` → isPii
   const [piiMap, setPiiMap]     = useState<Record<string, boolean>>({});
+
+  useImperativeHandle(ref, () => ({
+    getPiiPayload: () => tables.map(t => ({
+      tableName: t.name,
+      columns: t.columns.filter(c => piiMap[`${t.id}__${c.id}`]).map(c => c.name),
+    })),
+  }));
 
   const buildFallback = () => {
     const ts: TableData[] = DB_TABLES.map(t => ({
@@ -420,7 +431,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
         })),
         operations: ['PII'],
       });
-      setVerifyMsg({ ok: true, text: 'PII scan queued' });
+      setVerifyMsg({ ok: true, text: 'Scan queued successfully' });
     } catch {
       setVerifyMsg({ ok: false, text: 'PII scan failed. Please try again.' });
     } finally {
@@ -428,9 +439,9 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
     }
   };
 
-  const activeTable   = tables.find(t => t.id === activeId);
-  const activeCols    = activeTable?.columns ?? [];
-  const displayName   = dbName || sourceName;
+  const activeTable  = tables.find(t => t.id === activeId);
+  const activeCols   = activeTable?.columns ?? [];
+  const displayName  = dbName || sourceName;
 
   return (
     <div>
@@ -443,7 +454,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
             </span>
           )}
           <Button variant="secondary" size="sm" onClick={handleVerify} disabled={verifying || loading}>
-            <Check size={14} /> {verifying ? 'Scanning…' : 'Verify'}
+            <Check size={14} /> {verifying ? 'Scanning…' : 'Scan'}
           </Button>
         </div>
       </div>
@@ -480,7 +491,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
             </div>
             {activeCols.length === 0 ? (
               <div className="px-4 py-8 text-center text-[#6b7280] text-[13px]">
-                No columns found. Click Verify to scan for PII.
+                No columns found. Click Scan to scan for PII.
               </div>
             ) : activeCols.map(col => {
               const key   = `${activeId}__${col.id}`;
@@ -513,7 +524,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
       )}
     </div>
   );
-};
+});
 
 // ── Main Edit Page ─────────────────────────────────────────
 const TABS = [
@@ -538,6 +549,7 @@ export const DataSourceEdit: React.FC = () => {
 
   const basicRef = useRef<{ getValues: () => BasicDetailsValues }>(null);
   const connRef  = useRef<{ getValues: () => ConnectionDetailsValues }>(null);
+  const dbRef    = useRef<DatabaseTabHandle>(null);
 
   const fetchDs = () => {
     if (!id) { setLoadingDs(false); return; }
@@ -603,18 +615,9 @@ export const DataSourceEdit: React.FC = () => {
     }
   };
 
-  // Save (processMetadata) from Database tab then redirect to list
-  const handleSaveDatabase = async () => {
-    if (!id) return;
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      await api.processMetadata(id, { tables: [], operations: ['PII'] });
-      navigate('/data-sources');
-    } catch {
-      setSaveMsg({ ok: false, text: 'Failed to save. Please try again.' });
-      setSaving(false);
-    }
+  // Database tab: just navigate back — Scan button already handled PII
+  const handleSaveDatabase = () => {
+    navigate('/data-sources');
   };
 
   const handleSave = () => {
@@ -683,7 +686,7 @@ export const DataSourceEdit: React.FC = () => {
           <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} />
         </div>
         <div style={{ display: activeTab === 'database'   ? undefined : 'none' }}>
-          <DatabaseTab sourceName={sourceName} sourceId={id ?? ''} />
+          <DatabaseTab ref={dbRef} sourceName={sourceName} sourceId={id ?? ''} />
         </div>
       </div>
 

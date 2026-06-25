@@ -2,12 +2,26 @@ const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
 const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
 
 
+function getToken(): string {
+  // Try sessionStorage first (set by dpdpa-app shell after login)
+  const ss = sessionStorage.getItem('nyai_access_token') ?? '';
+  if (ss) return ss;
+  // Fallback: read nyai_tok cookie (set by dpdpa-app api.js)
+  const m = /(?:^|;\s*)nyai_tok=([^;]*)/.exec(document.cookie);
+  if (m) return decodeURIComponent(m[1]);
+  // Fallback: localStorage
+  return localStorage.getItem('access_token') ?? '';
+}
+
 function buildHeaders(): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'X-Request-Id': crypto.randomUUID(),
     'X-Timestamp': new Date().toISOString(),
   };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
