@@ -77,20 +77,14 @@ const STATUS_OPTIONS: FilterOption[] = [
 ];
 
 const TYPE_OPTIONS: FilterOption[] = [
-  { value: '',           label: 'All Types'  },
-  { value: 'PostgreSQL', label: 'PostgreSQL' },
-  { value: 'Postgres',   label: 'Postgres'   },
-  { value: 'MySQL',      label: 'MySQL'      },
-  { value: 'MongoDB',    label: 'MongoDB'    },
+  { value: '',         label: 'All Types'  },
+  { value: 'Postgres', label: 'PostgreSQL' },
+  { value: 'MySQL',    label: 'MySQL'      },
+  { value: 'MongoDB',  label: 'MongoDB'    },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {
-  const statusMap: Record<string, DataSource['status']> = {
-    completed:        'completed',
-    sample_collected: 'sample_collected',
-    created:          'created',
-  };
-  const rawStatus = (src.status ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const rawStatus = (src.status ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_') as DataSource['status'];
   const lastSynced = src.updated_at
     ? new Date(src.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
@@ -98,7 +92,7 @@ function mapApiDataSource(src: ApiDataSource): DataSource {
     id:         src.id,
     appName:    src.app_name,
     name:       src.name,
-    status:     statusMap[rawStatus] ?? 'created',
+    status:     rawStatus,
     type:       src.type,
     lastSynced,
     addedBy:    src.created_by,

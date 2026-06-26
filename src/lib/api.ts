@@ -63,7 +63,7 @@ export interface ApiDataSource {
   name: string;
   type: string;
   app_name: string;
-  status: string;
+  status: 'COMPLETED' | 'SAMPLE_COLLECTED' | 'CREATED';
   created_by: string;
   updated_at?: string;
 }
