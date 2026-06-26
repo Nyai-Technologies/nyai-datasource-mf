@@ -88,7 +88,7 @@ export const NewDataSource: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const consentType = basicData.alter ? 'Read_Write_Alter Access' : 'Read_Write Access';
+      const consentType = basicData.alter ? 'Read_Write_Alter Access' : 'Read_Access';
       const norm = (s: string) => s.replace(/_/g, ' ').toLowerCase().trim();
       const matchedConsent = consents.find(c => norm(c.type) === norm(consentType));
       console.log('[consent match]', { consents, consentType, matchedConsent });
@@ -239,7 +239,7 @@ export const NewDataSource: React.FC = () => {
             <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleNext} disabled={loading}>
+            <Button onClick={handleNext} disabled={loading || (step === 0 && !basicData.readWrite)}>
               {loading ? 'Please wait…' : NEXT_LABELS[step]}
             </Button>
           </div>

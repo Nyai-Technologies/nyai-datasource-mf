@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, MoreVertical } from 'lucide-react';
+import { Check, Clock, MoreVertical } from 'lucide-react';
 import type { SortState } from '../../../types/types';
 
 export interface Column<T> {
@@ -89,12 +89,16 @@ export function Table<T extends { id: string }>({ columns, data, onRowClick, onA
                 const val = (row as Record<string, unknown>)[key];
                 return (
                   <td key={key} className="px-4 py-3 text-[#1a2030] border-b border-[#b8c1d3] align-middle first:font-medium">
-                    {col.render ? col.render(val, row) : (
-                      key === 'status' ? (
+                    {col.render ? col.render(val, row) : key !== 'status' ? String(val ?? '') : (
+                      val === 'valid' ? (
                         <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border-2 border-[#22c55e]">
                           <Check size={13} className="text-[#22c55e]" strokeWidth={2.5} />
                         </span>
-                      ) : String(val ?? '')
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border-2 border-[#f59e0b]">
+                          <Clock size={11} className="text-[#f59e0b]" strokeWidth={2.5} />
+                        </span>
+                      )
                     )}
                   </td>
                 );

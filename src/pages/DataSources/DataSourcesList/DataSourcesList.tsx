@@ -15,14 +15,15 @@ const STATUS_OPTIONS: FilterOption[] = [
 ];
 
 const TYPE_OPTIONS: FilterOption[] = [
-  { value: '',           label: 'All Types'  },
-  { value: 'PostgreSQL', label: 'PostgreSQL' },
-  { value: 'MySQL',      label: 'MySQL'      },
-  { value: 'MongoDB',    label: 'MongoDB'    },
+  { value: '',         label: 'All Types'  },
+  { value: 'Postgres', label: 'PostgreSQL' },
+  { value: 'MySQL',    label: 'MySQL'      },
+  { value: 'MongoDB',  label: 'MongoDB'    },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {
   const statusMap: Record<string, DataSource['status']> = {
+    COMPLETED:        'valid',
     SAMPLE_COLLECTED: 'valid',
     CREATED:          'pending',
   };
