@@ -38,9 +38,32 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: false,
       assetsDir: '',
+      rollupOptions: {
+        output: {
+          assetFileNames: '[name][extname]',
+          chunkFileNames: '[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js',
+        },
+      },
     },
     preview: {
       allowedHosts: ['datasource-mf-dev.nyai.ai'],
+      cors: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
+      proxy: {
+        '/api': {
+          target: env.VITE_AUTH_ORIGIN ?? 'https://compliance.dev.nyai.ai',
+          changeOrigin: true,
+          secure: false,
+          bypass: (req) => {
+            if (req.url && req.url.endsWith('.js')) return req.url;
+          },
+        },
+      },
     },
     server: {
       port: 5001,
