@@ -99,10 +99,11 @@ function mapApiDataSource(src: ApiDataSource): DataSource {
   };
 }
 
-function RowMenu({ onEdit, onDelete, disabled }: {
+function RowMenu({ onEdit, onDelete, disabled, canEdit }: {
   readonly onEdit: () => void;
   readonly onDelete: () => void;
   readonly disabled: boolean;
+  readonly canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -134,14 +135,16 @@ function RowMenu({ onEdit, onDelete, disabled }: {
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-40" style={{ minWidth: 160 }}>
             <div className="rounded-[10px] overflow-hidden" style={{ background: '#1e5f6e' }}>
-              <button
-                type="button"
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
-              >
-                <Pencil size={18} strokeWidth={1.8} />
-                Edit
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                  onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
+                >
+                  <Pencil size={18} strokeWidth={1.8} />
+                  Edit
+                </button>
+              )}
               <button
                 type="button"
                 className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium cursor-pointer hover:bg-white/10 transition-colors"
@@ -220,6 +223,7 @@ export const DataSourcesList = () => {
       render: (_val: unknown, row: DataSource) => (
         <RowMenu
           disabled={deletingId === row.id}
+          canEdit={row.status === 'completed'}
           onEdit={() => navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } })}
           onDelete={() => handleDelete(row)}
         />
@@ -288,7 +292,7 @@ export const DataSourcesList = () => {
             <Table
               columns={columns}
               data={filtered.slice((page - 1) * pageSize, page * pageSize)}
-              onRowClick={row => navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } })}
+              onRowClick={row => { if (row.status === 'completed') navigate(`/data-sources/${row.id}/edit`, { state: { listRow: row } }); }}
             />
             <Pagination
               page={page}

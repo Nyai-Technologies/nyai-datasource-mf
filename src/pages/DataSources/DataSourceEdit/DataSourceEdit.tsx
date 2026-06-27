@@ -124,8 +124,8 @@ export interface ConnectionDetailsValues {
 
 const ConnectionDetailsTab = forwardRef<
   { getValues: () => ConnectionDetailsValues },
-  { hostname?: string; port?: number; username?: string; databaseName?: string; sslEnabled?: boolean }
->(({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled: initSsl = false }, ref) => {
+  { hostname?: string; port?: number; username?: string; databaseName?: string; sslEnabled?: boolean; isEdit?: boolean; onSslChange?: (v: boolean) => void }
+>(({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled: initSsl = false, isEdit = false, onSslChange }, ref) => {
   const [mode, setMode]           = useState<ConnectMode>('details');
   const [isJson, setIsJson]       = useState(false);
   const [host, setHost]           = useState(hostname);
@@ -140,7 +140,7 @@ const ConnectionDetailsTab = forwardRef<
   useEffect(() => { if (initPort != null)  setPort(String(initPort)); },   [initPort]);
   useEffect(() => { if (initUser)          setUsername(initUser); },        [initUser]);
   useEffect(() => { if (databaseName)      setDbName(databaseName); },     [databaseName]);
-  useEffect(() => { setSslEnabled(initSsl); },                              [initSsl]);
+  useEffect(() => { setSslEnabled(initSsl); onSslChange?.(initSsl); },     [initSsl]);
 
   useImperativeHandle(ref, () => ({
     getValues: () => ({ host, port, username, password, dbName, sslEnabled, dialect: 'Postgres' }),
@@ -176,12 +176,11 @@ const ConnectionDetailsTab = forwardRef<
   );
 
   const CertContent = () => {
-    const [ssl, setSsl] = useState(true);
     const [mode, setMode] = useState('verify-full');
     return (
       <div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-          <Checkbox checked={ssl} onChange={setSsl} label="SSL" />
+          <Checkbox checked={sslEnabled} onChange={v => { setSslEnabled(v); onSslChange?.(v); }} label="SSL" />
           <div style={{ position: 'relative', display: 'flex' }}>
             <select style={{ height: 34, padding: '0 28px 0 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 14, appearance: 'none', outline: 'none', cursor: 'pointer' }} value={mode} onChange={e => setMode(e.target.value)}>
               <option value="verify-full">Verify Full</option>
@@ -275,7 +274,7 @@ const ConnectionDetailsTab = forwardRef<
             <Input label="Username" required placeholder="Enter the username" value={username} onChange={e => setUsername(e.target.value)} />
             <Input label="Password" required type="password" placeholder="Leave blank to keep saved password" value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          <Input label="Database Name" required placeholder="Enter a database name" value={dbName} onChange={e => setDbName(e.target.value)} />
+          <Input label="Database Name" required placeholder="Enter a database name" value={dbName} onChange={e => setDbName(e.target.value)} disabled={isEdit} />
           <div style={{ marginTop: 8 }}>
             <p style={{ fontWeight: 600, fontSize: 14, color: '#374151', marginBottom: 8 }}>Optional Details</p>
             <Accordion title="Certificates"><CertContent /></Accordion>
@@ -539,13 +538,14 @@ export const DataSourceEdit: React.FC = () => {
   const location = useLocation();
   const listRow  = (location.state as { listRow?: DataSource } | null)?.listRow;
 
-  const [activeTab, setActiveTab] = useState<Tab>('basic');
-  const [ds, setDs]               = useState<ApiDataSourceDetail | null>(null);
-  const [loadingDs, setLoadingDs] = useState(true);
-  const [loadErr, setLoadErr]     = useState<string | null>(null);
-  const [saving, setSaving]       = useState(false);
-  const [saveMsg, setSaveMsg]     = useState<{ ok: boolean; text: string } | null>(null);
-  const [languages, setLanguages] = useState<ApiLanguage[]>([]);
+  const [activeTab, setActiveTab]       = useState<Tab>('basic');
+  const [ds, setDs]                     = useState<ApiDataSourceDetail | null>(null);
+  const [loadingDs, setLoadingDs]       = useState(true);
+  const [loadErr, setLoadErr]           = useState<string | null>(null);
+  const [saving, setSaving]             = useState(false);
+  const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
+  const [languages, setLanguages]       = useState<ApiLanguage[]>([]);
+  const [connSslChecked, setConnSslChecked] = useState(false);
 
   const basicRef = useRef<{ getValues: () => BasicDetailsValues }>(null);
   const connRef  = useRef<{ getValues: () => ConnectionDetailsValues }>(null);
@@ -565,6 +565,14 @@ export const DataSourceEdit: React.FC = () => {
     fetchDs();
     api.listLanguages().then(setLanguages).catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (!ds) return;
+    const ssl = (ds as unknown as Record<string,unknown>);
+    setConnSslChecked(
+      (ds.sslEnabled ?? (ssl['ssl_enabled'] as boolean) ?? (ssl['ssl'] as boolean)) === true
+    );
+  }, [ds]);
 
   // Save Basic Details then advance to Connection tab
   const handleSaveBasic = async () => {
@@ -683,7 +691,7 @@ export const DataSourceEdit: React.FC = () => {
           <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} languages={languages} />
         </div>
         <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
-          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} />
+          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} isEdit={true} onSslChange={setConnSslChecked} />
         </div>
         <div style={{ display: activeTab === 'database'   ? undefined : 'none' }}>
           <DatabaseTab ref={dbRef} sourceName={sourceName} sourceId={id ?? ''} />
@@ -697,7 +705,7 @@ export const DataSourceEdit: React.FC = () => {
           </span>
         )}
         <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={saving}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving}>
+        <Button onClick={handleSave} disabled={saving || (activeTab === 'connection' && !connSslChecked)}>
           {saving ? 'Saving…' : SAVE_LABELS[activeTab]}
         </Button>
       </div>

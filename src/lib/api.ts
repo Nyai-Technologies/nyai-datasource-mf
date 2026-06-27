@@ -1,5 +1,5 @@
-const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE ?? ''}/api/v1`;
-const BASE_URL  = `${import.meta.env.VITE_API_BASE ?? ''}/data-engine/api/v1`;
+const AUTH_BASE = `${import.meta.env.VITE_AUTH_BASE || 'https://compliance.dev.nyai.ai'}/api/v1`;
+const BASE_URL  = `${import.meta.env.VITE_API_BASE || 'https://dev.nyai.ai'}/data-engine/api/v1`;
 
 
 function getToken(): string {
