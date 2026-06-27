@@ -124,8 +124,8 @@ export interface ConnectionDetailsValues {
 
 const ConnectionDetailsTab = forwardRef<
   { getValues: () => ConnectionDetailsValues },
-  { hostname?: string; port?: number; username?: string; databaseName?: string; sslEnabled?: boolean; isEdit?: boolean; onSslChange?: (v: boolean) => void }
->(({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled: initSsl = false, isEdit = false, onSslChange }, ref) => {
+  { hostname?: string; port?: number; username?: string; databaseName?: string; sslEnabled?: boolean; dialect?: string; isEdit?: boolean; onSslChange?: (v: boolean) => void }
+>(({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled: initSsl = false, dialect: initDialect = 'Postgres', isEdit = false, onSslChange }, ref) => {
   const [mode, setMode]           = useState<ConnectMode>('details');
   const [isJson, setIsJson]       = useState(false);
   const [host, setHost]           = useState(hostname);
@@ -143,7 +143,7 @@ const ConnectionDetailsTab = forwardRef<
   useEffect(() => { setSslEnabled(initSsl); onSslChange?.(initSsl); },     [initSsl]);
 
   useImperativeHandle(ref, () => ({
-    getValues: () => ({ host, port, username, password, dbName, sslEnabled, dialect: 'Postgres' }),
+    getValues: () => ({ host, port, username, password, dbName, sslEnabled, dialect: initDialect }),
   }));
   const [uri, setUri]             = useState('');
   const [jsonValue, setJsonValue] = useState(JSON_TEMPLATE);
@@ -650,6 +650,7 @@ export const DataSourceEdit: React.FC = () => {
   const connUsername  = ds?.username ?? ds?.user ?? dsRaw?.['user_name'] as string ?? '';
   const connDatabase  = ds?.databaseName ?? ds?.database_name ?? ds?.database ?? dsRaw?.['db_name'] as string ?? '';
   const connSsl       = ds?.sslEnabled ?? ds?.ssl_enabled ?? ds?.ssl ?? false;
+  const connDialect   = ds?.dialect ?? dsRaw?.['dialect'] as string ?? 'Postgres';
 
   if (loadingDs) {
     return <div className="p-10 text-center text-[#6b7280] text-[14px]">Loading…</div>;
@@ -691,7 +692,7 @@ export const DataSourceEdit: React.FC = () => {
           <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} languages={languages} />
         </div>
         <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
-          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} isEdit={true} onSslChange={setConnSslChecked} />
+          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} dialect={connDialect} isEdit={true} onSslChange={setConnSslChecked} />
         </div>
         <div style={{ display: activeTab === 'database'   ? undefined : 'none' }}>
           <DatabaseTab ref={dbRef} sourceName={sourceName} sourceId={id ?? ''} />

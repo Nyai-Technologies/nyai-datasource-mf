@@ -33,11 +33,18 @@ function CreatedIcon({ color }: { color: string }) {
   );
 }
 
+const TYPE_DISPLAY: Record<string, string> = {
+  postgres:      'PostgreSQL',
+  mysql:         'MySQL',
+  ms_sql_server: 'MS SQL Server',
+  mongodb:       'MongoDB',
+};
+
 function TypeCell({ type }: { readonly type: string }) {
   const key  = (type ?? '').toLowerCase();
   const logo = DB_LOGOS[key];
   const bg   = DB_BG[key] ?? '#f1f5f9';
-  const label = type ? type.charAt(0).toUpperCase() + type.slice(1) : '—';
+  const label = TYPE_DISPLAY[key] ?? (type ? type.charAt(0).toUpperCase() + type.slice(1) : '—');
   return (
     <div className="flex items-center gap-2">
       {logo && (
@@ -77,10 +84,11 @@ const STATUS_OPTIONS: FilterOption[] = [
 ];
 
 const TYPE_OPTIONS: FilterOption[] = [
-  { value: '',         label: 'All Types'  },
-  { value: 'Postgres', label: 'PostgreSQL' },
-  { value: 'MySQL',    label: 'MySQL'      },
-  { value: 'MongoDB',  label: 'MongoDB'    },
+  { value: '',              label: 'All Types'    },
+  { value: 'Postgres',      label: 'PostgreSQL'   },
+  { value: 'Mysql',         label: 'MySQL'        },
+  { value: 'MS_SQL_Server', label: 'MS SQL Server'},
+  { value: 'MongoDB',       label: 'MongoDB'      },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {

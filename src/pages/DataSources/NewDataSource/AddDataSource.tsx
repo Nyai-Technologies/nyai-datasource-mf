@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Stepper, Button } from '../../../components/Components';
 import { BasicDetails } from './steps/BasicDetails/BasicDetails';
 import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
@@ -13,6 +13,13 @@ const STEPS = [
 ];
 
 const NEXT_LABELS = ['Next', 'Test Connection', 'Save & Connect'];
+
+// Maps the UI type id to the backend dialect string and default port
+const DIALECT_MAP: Record<string, { dialect: string; defaultPort: number }> = {
+  postgresql: { dialect: 'Postgres',      defaultPort: 5432 },
+  mysql:      { dialect: 'Mysql',         defaultPort: 3306 },
+  mssql:      { dialect: 'MS_SQL_Server', defaultPort: 1433 },
+};
 
 type FieldErrors = Record<string, string>;
 
@@ -38,7 +45,10 @@ function validateConnection(data: ConnectionData): FieldErrors {
 }
 
 export const NewDataSource: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const dbType    = (location.state as { dbType?: string } | null)?.dbType ?? 'postgresql';
+  const { dialect, defaultPort } = DIALECT_MAP[dbType] ?? DIALECT_MAP.postgresql;
 
   const [step, setStep]               = useState(0);
   const [loading, setLoading]         = useState(false);
@@ -97,12 +107,12 @@ export const NewDataSource: React.FC = () => {
         appName: basicData.appName,
         name: basicData.name,
         description: basicData.description,
-        dialect: 'Postgres',
+        dialect,
         databaseName: connData.mode === 'details' ? connData.dbName : '',
         username: connData.mode === 'details' ? connData.username : '',
         password: connData.mode === 'details' ? connData.password : '',
         hostname: connData.mode === 'details' ? connData.host : '',
-        port: Number(connData.port) || 5432,
+        port: Number(connData.port) || defaultPort,
         sslEnabled: connData.sslEnabled,
         consent: {
           ...(matchedConsent?.id ? { id: matchedConsent.id } : {}),

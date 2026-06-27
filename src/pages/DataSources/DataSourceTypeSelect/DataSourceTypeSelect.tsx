@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DB_LOGOS, DB_BG } from '../../../assets/layout/dbLogos';
 
+const ENABLED_TYPES = new Set(['postgresql', 'mysql', 'mssql']);
+
 const DB_TYPES = [
-  { id: 'postgresql', name: 'PostgreSQL' },
-  { id: 'mysql',      name: 'MySQL'      },
-  { id: 'mongodb',    name: 'MongoDB'    },
-  { id: 'databricks', name: 'Databricks' },
-  { id: 'redshift',   name: 'Redshift'   },
-  { id: 'redis',      name: 'Redis'      },
-  { id: 'snowflake',  name: 'Snowflake'  },
-  { id: 'oracle',     name: 'Oracle'     },
+  { id: 'postgresql', name: 'PostgreSQL'    },
+  { id: 'mysql',      name: 'MySQL'         },
+  { id: 'mssql',      name: 'MS SQL Server' },
+  { id: 'mongodb',    name: 'MongoDB'       },
+  { id: 'databricks', name: 'Databricks'    },
+  { id: 'redshift',   name: 'Redshift'      },
+  { id: 'redis',      name: 'Redis'         },
+  { id: 'snowflake',  name: 'Snowflake'     },
+  { id: 'oracle',     name: 'Oracle'        },
 ];
 
 export const DataSourceTypeSelect = () => {
@@ -18,9 +21,9 @@ export const DataSourceTypeSelect = () => {
   const [selected, setSelected] = useState('');
 
   const handleClick = (id: string) => {
-    if (id !== 'postgresql') return;
+    if (!ENABLED_TYPES.has(id)) return;
     setSelected(id);
-    navigate('/data-sources/new');
+    navigate('/data-sources/new', { state: { dbType: id } });
   };
 
   return (
@@ -29,7 +32,7 @@ export const DataSourceTypeSelect = () => {
 
       <div className="grid grid-cols-4 gap-4 mb-6 max-[900px]:grid-cols-2">
         {DB_TYPES.map(db => {
-          const enabled = db.id === 'postgresql';
+          const enabled = ENABLED_TYPES.has(db.id);
           const isSelected = selected === db.id;
           return (
             <button
