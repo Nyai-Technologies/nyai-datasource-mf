@@ -39,12 +39,11 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
   }, [selectedTables, selectedCols]);
 
   const toggleTable = (id: string) => {
+    const tableCols = schema.find(t => t.tableName === id)?.columns.map(c => c.name) ?? [];
     setSelectedTables(prev => {
       const n = new Set(prev);
       if (n.has(id)) {
         n.delete(id);
-        // deselect all columns belonging to this table
-        const tableCols = schema.find(t => t.tableName === id)?.columns.map(c => c.name) ?? [];
         setSelectedCols(prevCols => {
           const nc = new Set(prevCols);
           tableCols.forEach(c => nc.delete(c));
@@ -52,6 +51,11 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
         });
       } else {
         n.add(id);
+        setSelectedCols(prevCols => {
+          const nc = new Set(prevCols);
+          tableCols.forEach(c => nc.add(c));
+          return nc;
+        });
       }
       return n;
     });
@@ -73,7 +77,7 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
   }
 
   const headerCls = 'flex items-center gap-3 px-4 py-3 bg-[#f0f5f5] border-b border-[#b8c1d3] text-[14px] font-semibold text-[#374151]';
-  const rowCls    = 'flex w-full items-center gap-3 px-4 py-[13px] border-b border-[#e5eaf0] last:border-b-0 text-[14px] text-[#374151] bg-transparent border-x-0 border-t-0 cursor-pointer transition-colors text-left';
+  const rowCls    = 'flex w-full items-center gap-3 px-4 py-[13px] border-b border-[#e5eaf0] last:border-b-0 text-[14px] text-[#374151] border-x-0 border-t-0 cursor-pointer transition-colors text-left';
 
   return (
     <div className="flex border border-[#b8c1d3] rounded-[8px] overflow-hidden">
@@ -84,7 +88,7 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
             checked={allTablesSelected}
             onChange={v => {
               setSelectedTables(v ? new Set(schema.map(t => t.tableName)) : new Set());
-              if (!v) setSelectedCols(new Set());
+              setSelectedCols(v ? new Set(schema.flatMap(t => t.columns.map(c => c.name))) : new Set());
             }}
           />
           <span>Tables</span>
@@ -96,7 +100,7 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
               <button
                 type="button"
                 key={t.tableName}
-                className={`${rowCls} ${isActive ? 'bg-[rgba(30,112,112,0.06)]' : 'hover:bg-[#f8fafb]'}`}
+                className={`${rowCls} ${isActive ? 'bg-[rgba(30,112,112,0.06)]' : selectedTables.has(t.tableName) ? 'bg-[#f8fafb]' : ''}`}
                 onClick={() => setActiveTable(t.tableName)}
               >
                 <Checkbox
@@ -129,7 +133,7 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
             <button
               type="button"
               key={col}
-              className={`${rowCls} ${selectedCols.has(col) ? 'bg-[rgba(30,112,112,0.06)]' : 'hover:bg-[#f8fafb]'}`}
+              className={`${rowCls} hover:bg-[#f8fafb]`}
               onClick={() => toggleCol(col)}
             >
               <Checkbox checked={selectedCols.has(col)} onChange={() => toggleCol(col)} />
