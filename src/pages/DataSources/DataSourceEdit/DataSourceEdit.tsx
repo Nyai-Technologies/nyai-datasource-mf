@@ -72,14 +72,12 @@ const BasicDetailsTab = forwardRef<
   { getValues: () => BasicDetailsValues },
   { sourceAppName?: string; sourceName: string; sourceDescription?: string; languages?: ApiLanguage[] }
 >(({ sourceAppName = '', sourceName, sourceDescription = '', languages = [] }, ref) => {
-  const [appName, setAppName]         = useState(sourceAppName);
   const [name, setName]               = useState(sourceName);
   const [primaryLang, setPrimaryLang] = useState('');
   const [secondaryLang, setSecond]    = useState('');
   const [description, setDesc]        = useState(sourceDescription);
   const [readWrite]                   = useState(true);
 
-  useEffect(() => { if (sourceAppName)    setAppName(sourceAppName); },    [sourceAppName]);
   useEffect(() => { if (sourceName)       setName(sourceName); },          [sourceName]);
   useEffect(() => { if (sourceDescription) setDesc(sourceDescription); },  [sourceDescription]);
   const langs = languages.length > 0
@@ -87,15 +85,12 @@ const BasicDetailsTab = forwardRef<
     : [{ value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' }, { value: 'mr', label: 'Marathi' }];
 
   useImperativeHandle(ref, () => ({
-    getValues: () => ({ appName, name, primaryLang, secondaryLang, description, readWrite }),
+    getValues: () => ({ appName: sourceAppName, name, primaryLang, secondaryLang, description, readWrite }),
   }));
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <Input label="App Name" required placeholder="Enter the app name (e.g. MDM)" value={appName} onChange={e => setAppName(e.target.value)} />
-        <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
-      </div>
+      <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <Select label="Primary Language" options={langs} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
         <Select label="Secondary Language" placeholder="Select the secondary language" options={langs} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
@@ -699,7 +694,7 @@ export const DataSourceEdit: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+      <div className="flex justify-end items-center gap-3 px-6 py-4 flex-shrink-0">
         {saveMsg && (
           <span className={`text-[13px] mr-auto ${saveMsg.ok ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
             {saveMsg.text}

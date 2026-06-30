@@ -238,7 +238,7 @@ export const NewDataSource: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
           <button
             className="bg-transparent border-none text-[#1e7070] text-[14px] cursor-pointer p-0 hover:underline disabled:opacity-50"
             onClick={handleBack}
