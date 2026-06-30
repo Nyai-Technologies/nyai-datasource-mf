@@ -76,7 +76,7 @@ const BasicDetailsTab = forwardRef<
   const [primaryLang, setPrimaryLang] = useState('');
   const [secondaryLang, setSecond]    = useState('');
   const [description, setDesc]        = useState(sourceDescription);
-  const [readWrite]                   = useState(true);
+  const [readWrite]                   = useState(false);
 
   useEffect(() => { if (sourceName)       setName(sourceName); },          [sourceName]);
   useEffect(() => { if (sourceDescription) setDesc(sourceDescription); },  [sourceDescription]);

@@ -66,7 +66,7 @@ export const NewDataSource: React.FC = () => {
     description: '',
     primaryLang: '',
     secondaryLang: '',
-    readWrite: true,
+    readWrite: false,
     alter: false,
   });
 
