@@ -267,12 +267,12 @@ const ConnectionDetailsTab = forwardRef<
         <div>
           <p style={{ fontWeight: 600, fontSize: 14, color: '#374151', marginBottom: 16 }}>Required Details</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <Input label="Host" required placeholder="Enter the host" value={host} onChange={e => setHost(e.target.value)} />
-            <Input label="Port" required placeholder="Enter the port" value={port} onChange={e => setPort(e.target.value)} />
+            <Input label="Host" required placeholder="Enter the host" value={host} onChange={e => setHost(e.target.value)} disabled={isEdit} />
+            <Input label="Port" required placeholder="Enter the port" value={port} onChange={e => setPort(e.target.value)} disabled={isEdit} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <Input label="Username" required placeholder="Enter the username" value={username} onChange={e => setUsername(e.target.value)} />
-            <Input label="Password" required type="password" placeholder="Leave blank to keep saved password" value={password} onChange={e => setPassword(e.target.value)} />
+            <Input label="Username" required placeholder="Enter the username" value={username} onChange={e => setUsername(e.target.value)} disabled={isEdit} />
+            <Input label="Password" required type="password" placeholder="Leave blank to keep saved password" value={password} onChange={e => setPassword(e.target.value)} disabled={isEdit} />
           </div>
           <Input label="Database Name" required placeholder="Enter a database name" value={dbName} onChange={e => setDbName(e.target.value)} disabled={isEdit} />
           <div style={{ marginTop: 8 }}>
