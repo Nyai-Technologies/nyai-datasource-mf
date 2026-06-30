@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Pencil, Trash2 } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
-import { DB_LOGOS, DB_BG } from '../../../assets/layout/dbLogos';
 import { FilterDropdown } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { FilterOption } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { DataSource } from '../../../types/types';
@@ -41,20 +40,9 @@ const TYPE_DISPLAY: Record<string, string> = {
 };
 
 function TypeCell({ type }: { readonly type: string }) {
-  const key  = (type ?? '').toLowerCase();
-  const logo = DB_LOGOS[key];
-  const bg   = DB_BG[key] ?? '#f1f5f9';
+  const key = (type ?? '').toLowerCase();
   const label = TYPE_DISPLAY[key] ?? (type ? type.charAt(0).toUpperCase() + type.slice(1) : '—');
-  return (
-    <div className="flex items-center gap-2">
-      {logo && (
-        <div className="w-6 h-6 rounded-[4px] flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
-          <img src={logo} alt={label} className="w-4 h-4 object-contain" />
-        </div>
-      )}
-      <span>{label}</span>
-    </div>
-  );
+  return <span>{label}</span>;
 }
 
 const STATUS_META: Record<DataSource['status'], { label: string; color: string; bg: string; Icon: React.ComponentType<{ color: string }> }> = {
