@@ -23,10 +23,15 @@ const DIALECT_MAP: Record<string, { dialect: string; defaultPort: number }> = {
 
 type FieldErrors = Record<string, string>;
 
-function validateBasic(data: BasicDetailsData): FieldErrors {
+function validateBasic(data: BasicDetailsData, existingNames: string[]): FieldErrors {
   const errs: FieldErrors = {};
-  if (!data.name.trim())        errs.name        = 'Name is required';
+  if (!data.name.trim())
+    errs.name = 'Name is required';
+  else if (existingNames.some(n => n.trim().toLowerCase() === data.name.trim().toLowerCase()))
+    errs.name = 'A Data Source with this name already exists. Please choose a different name.';
   if (!data.description.trim()) errs.description = 'Description is required';
+  if (data.primaryLang && data.secondaryLang && data.primaryLang === data.secondaryLang)
+    errs.langConflict = 'Primary Language and Secondary Language cannot be the same.';
   return errs;
 }
 
@@ -78,6 +83,7 @@ export const NewDataSource: React.FC = () => {
 
   const [consents, setConsents]             = useState<ApiConsent[]>([]);
   const [languages, setLanguages]           = useState<ApiLanguage[]>([]);
+  const [existingNames, setExistingNames]   = useState<string[]>([]);
   const [datasourceId, setDatasourceId]     = useState<string | null>(null);
   const [schema, setSchema]                 = useState<ApiSchemaTable[]>([]);
   const [selectedTables, setSelectedTables] = useState<SelectedTable[]>([]);
@@ -85,6 +91,7 @@ export const NewDataSource: React.FC = () => {
   useEffect(() => {
     api.listConsents().then(setConsents).catch(() => {});
     api.listLanguages().then(setLanguages).catch(() => {});
+    api.listDataSources().then(list => setExistingNames(list.map(d => d.name))).catch(() => {});
   }, []);
 
   const clearFieldError = (keys: string[]) =>
@@ -172,7 +179,7 @@ export const NewDataSource: React.FC = () => {
     setError(null);
 
     if (step === 0) {
-      const errs = validateBasic(basicData);
+      const errs = validateBasic(basicData, existingNames);
       if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
       setFieldErrors({});
       setStep(1);
@@ -216,7 +223,10 @@ export const NewDataSource: React.FC = () => {
               languages={languages}
               onChange={patch => {
                 setBasicData(prev => ({ ...prev, ...patch }));
-                clearFieldError(Object.keys(patch));
+                const keys = Object.keys(patch);
+                if (keys.includes('primaryLang') || keys.includes('secondaryLang'))
+                  keys.push('langConflict');
+                clearFieldError(keys);
               }}
             />
           )}

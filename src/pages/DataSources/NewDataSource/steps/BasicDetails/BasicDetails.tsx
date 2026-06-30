@@ -24,21 +24,26 @@ export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, erro
         error={errors.name}
       />
 
-      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <Select
-          label="Primary Language"
-          placeholder="Select the primary language"
-          options={langOptions}
-          value={data.primaryLang}
-          onChange={e => onChange({ primaryLang: e.target.value })}
-        />
-        <Select
-          label="Secondary Language"
-          placeholder="Select the secondary language"
-          options={langOptions}
-          value={data.secondaryLang}
-          onChange={e => onChange({ secondaryLang: e.target.value })}
-        />
+      <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
+          <Select
+            label="Primary Language"
+            placeholder="Select the primary language"
+            options={langOptions}
+            value={data.primaryLang}
+            onChange={e => onChange({ primaryLang: e.target.value })}
+          />
+          <Select
+            label="Secondary Language"
+            placeholder="Select the secondary language"
+            options={langOptions}
+            value={data.secondaryLang}
+            onChange={e => onChange({ secondaryLang: e.target.value })}
+          />
+        </div>
+        {errors.langConflict && (
+          <p className="text-[13px] text-[#dc2626] mt-1">{errors.langConflict}</p>
+        )}
       </div>
 
       <Textarea
