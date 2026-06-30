@@ -188,7 +188,12 @@ export const DataSourcesList = () => {
     setApiError(null);
     try {
       const result = await api.listDataSources();
-      setData(result.map(mapApiDataSource));
+      const sorted = [...result].sort((a, b) => {
+        const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return tb - ta;
+      });
+      setData(sorted.map(mapApiDataSource));
       if (resetToPage1) setPage(1);
     } catch {
       setApiError('Failed to load data sources. Please try again.');
