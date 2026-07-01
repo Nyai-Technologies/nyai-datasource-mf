@@ -51,6 +51,8 @@ export interface ConnectionData {
   dbName: string;
   uri: string;
   sslEnabled: boolean;
+  isJson?: boolean;
+  jsonContent?: string;
 }
 
 export interface SelectedTable {

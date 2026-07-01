@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Pencil, Trash2 } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
@@ -33,10 +34,19 @@ function CreatedIcon({ color }: { color: string }) {
 }
 
 const TYPE_DISPLAY: Record<string, string> = {
-  postgres:      'PostgreSQL',
-  mysql:         'MySQL',
-  ms_sql_server: 'MS SQL Server',
-  mongodb:       'MongoDB',
+  postgres:        'PostgreSQL',
+  postgresql:      'PostgreSQL',
+  mysql:           'MySQL',
+  ms_sql_server:   'MS SQL Server',
+  mssql:           'MS SQL Server',
+  sqlserver:       'MS SQL Server',
+  mongodb:         'MongoDB',
+  mongo:           'MongoDB',
+  databricks:      'Databricks',
+  redshift:        'Redshift',
+  redis:           'Redis',
+  snowflake:       'Snowflake',
+  oracle:          'Oracle',
 };
 
 function TypeCell({ type }: { readonly type: string }) {
@@ -77,6 +87,11 @@ const TYPE_OPTIONS: FilterOption[] = [
   { value: 'Mysql',         label: 'MySQL'        },
   { value: 'MS_SQL_Server', label: 'MS SQL Server'},
   { value: 'MongoDB',       label: 'MongoDB'      },
+  { value: 'Databricks',    label: 'Databricks'   },
+  { value: 'Redshift',      label: 'Redshift'     },
+  { value: 'Redis',         label: 'Redis'        },
+  { value: 'Snowflake',     label: 'Snowflake'    },
+  { value: 'Oracle',        label: 'Oracle'       },
 ];
 
 function mapApiDataSource(src: ApiDataSource): DataSource {
@@ -101,35 +116,57 @@ function RowMenu({ onEdit, onDelete, disabled, canEdit }: {
   readonly disabled: boolean;
   readonly canEdit: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen]                       = useState(false);
+  const [menuStyle, setMenuStyle]             = useState<React.CSSProperties>({});
+  const btnRef                                = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (btnRef.current && !btnRef.current.closest('[data-rowmenu]')?.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!open && btnRef.current) {
+      const rect       = btnRef.current.getBoundingClientRect();
+      const menuHeight = canEdit ? 112 : 56;
+      const menuWidth  = 160;
+      const openUp     = rect.bottom + menuHeight + 8 > window.innerHeight;
+      setMenuStyle({
+        position: 'fixed',
+        right:    window.innerWidth - rect.right,
+        top:      openUp ? undefined : rect.bottom + 4,
+        bottom:   openUp ? window.innerHeight - rect.top + 4 : undefined,
+        minWidth: menuWidth,
+        zIndex:   9999,
+      });
+    }
+    setOpen(v => !v);
+  };
+
   return (
-    <div ref={ref} className="relative">
+    <div data-rowmenu="1" className="relative inline-block">
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
         className="w-7 h-7 flex items-center justify-center rounded text-gray-400 bg-transparent border-none cursor-pointer hover:bg-gray-100 hover:text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
+        onClick={handleToggle}
       >
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
           <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
         </svg>
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-40" style={{ minWidth: 160 }}>
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+          <div style={menuStyle}>
             <div className="rounded-[10px] overflow-hidden" style={{ background: '#1e5f6e' }}>
               {canEdit && (
                 <button
@@ -151,7 +188,8 @@ function RowMenu({ onEdit, onDelete, disabled, canEdit }: {
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
@@ -241,7 +279,7 @@ export const DataSourcesList = () => {
   const filtered = data
     .filter(d => d.name.toLowerCase().includes(search.toLowerCase()))
     .filter(d => !statusFilter  || d.status  === statusFilter)
-    .filter(d => !typeFilter    || d.type    === typeFilter)
+    .filter(d => !typeFilter    || TYPE_DISPLAY[(d.type ?? '').toLowerCase()] === TYPE_DISPLAY[typeFilter.toLowerCase()])
     .filter(d => !addedByFilter || d.addedBy === addedByFilter);
 
   const resetPage = () => setPage(1);
