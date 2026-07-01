@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { api, type ApiDataSourceDetail, type ApiLanguage } from '../../../lib/api';
+import { api, type ApiDataSourceDetail } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
 import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Check } from 'lucide-react';
-import { Button, Input, Textarea, Select, Checkbox, Accordion } from '../../../components/Components';
+import { Button, Input, Textarea, Checkbox, Accordion } from '../../../components/Components';
 // ── Types ──────────────────────────────────────────────────
 type Tab = 'basic' | 'connection' | 'database';
 
@@ -62,39 +62,28 @@ const piiBadgeOffCls = 'inline-flex items-center px-[7px] py-[1px] bg-transparen
 export interface BasicDetailsValues {
   appName: string;
   name: string;
-  primaryLang: string;
-  secondaryLang: string;
   description: string;
   readWrite: boolean;
 }
 
 const BasicDetailsTab = forwardRef<
   { getValues: () => BasicDetailsValues },
-  { sourceAppName?: string; sourceName: string; sourceDescription?: string; languages?: ApiLanguage[] }
->(({ sourceAppName = '', sourceName, sourceDescription = '', languages = [] }, ref) => {
-  const [name, setName]               = useState(sourceName);
-  const [primaryLang, setPrimaryLang] = useState('');
-  const [secondaryLang, setSecond]    = useState('');
-  const [description, setDesc]        = useState(sourceDescription);
-  const [readWrite]                   = useState(false);
+  { sourceAppName?: string; sourceName: string; sourceDescription?: string }
+>(({ sourceAppName = '', sourceName, sourceDescription = '' }, ref) => {
+  const [name, setName]       = useState(sourceName);
+  const [description, setDesc] = useState(sourceDescription);
+  const [readWrite]            = useState(false);
 
-  useEffect(() => { if (sourceName)       setName(sourceName); },          [sourceName]);
+  useEffect(() => { if (sourceName)        setName(sourceName); },         [sourceName]);
   useEffect(() => { if (sourceDescription) setDesc(sourceDescription); },  [sourceDescription]);
-  const langs = languages.length > 0
-    ? languages.map(l => ({ value: l.id, label: l.name }))
-    : [{ value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' }, { value: 'mr', label: 'Marathi' }];
 
   useImperativeHandle(ref, () => ({
-    getValues: () => ({ appName: sourceAppName, name, primaryLang, secondaryLang, description, readWrite }),
+    getValues: () => ({ appName: sourceAppName, name, description, readWrite }),
   }));
 
   return (
     <div className="flex flex-col gap-4">
       <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
-      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <Select label="Primary Language" options={langs} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
-        <Select label="Secondary Language" placeholder="Select the secondary language" options={langs} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
-      </div>
       <Textarea label="Description" required value={description} onChange={e => setDesc(e.target.value)} rows={6} />
       <div>
         <p className="text-[14px] font-semibold text-[#374151] mb-1">Database Access Permissions <span className="text-[#ef4444]">*</span></p>
@@ -539,7 +528,6 @@ export const DataSourceEdit: React.FC = () => {
   const [loadErr, setLoadErr]           = useState<string | null>(null);
   const [saving, setSaving]             = useState(false);
   const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
-  const [languages, setLanguages]       = useState<ApiLanguage[]>([]);
   const [connSslChecked, setConnSslChecked] = useState(false);
 
   const basicRef = useRef<{ getValues: () => BasicDetailsValues }>(null);
@@ -558,7 +546,6 @@ export const DataSourceEdit: React.FC = () => {
 
   useEffect(() => {
     fetchDs();
-    api.listLanguages().then(setLanguages).catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -684,7 +671,7 @@ export const DataSourceEdit: React.FC = () => {
       {/* key remounts tabs with correct initial values when API data arrives */}
       <div className="flex-1 overflow-y-auto p-6" key={ds?.id ?? listRow?.id ?? 'empty'}>
         <div style={{ display: activeTab === 'basic'      ? undefined : 'none' }}>
-          <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} languages={languages} />
+          <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} />
         </div>
         <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
           <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} dialect={connDialect} isEdit={true} onSslChange={setConnSslChecked} />

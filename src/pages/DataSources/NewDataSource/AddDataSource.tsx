@@ -4,7 +4,7 @@ import { Stepper, Button } from '../../../components/Components';
 import { BasicDetails } from './steps/BasicDetails/BasicDetails';
 import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
 import { Preview } from './steps/Preview/Preview';
-import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent, type ApiLanguage } from '../../../lib/api';
+import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent } from '../../../lib/api';
 import type { BasicDetailsData, ConnectionData, SelectedTable } from '../../../types/types';
 const STEPS = [
   { label: 'Basic Details' },
@@ -30,8 +30,6 @@ function validateBasic(data: BasicDetailsData, existingNames: string[]): FieldEr
   else if (existingNames.some(n => n.trim().toLowerCase() === data.name.trim().toLowerCase()))
     errs.name = 'A Data Source with this name already exists. Please choose a different name.';
   if (!data.description.trim()) errs.description = 'Description is required';
-  if (data.primaryLang && data.secondaryLang && data.primaryLang === data.secondaryLang)
-    errs.langConflict = 'Primary Language and Secondary Language cannot be the same.';
   return errs;
 }
 
@@ -64,8 +62,6 @@ export const NewDataSource: React.FC = () => {
     appName: 'DPDPA',
     name: '',
     description: '',
-    primaryLang: '',
-    secondaryLang: '',
     readWrite: false,
     alter: false,
   });
@@ -82,7 +78,6 @@ export const NewDataSource: React.FC = () => {
   });
 
   const [consents, setConsents]             = useState<ApiConsent[]>([]);
-  const [languages, setLanguages]           = useState<ApiLanguage[]>([]);
   const [existingNames, setExistingNames]   = useState<string[]>([]);
   const [datasourceId, setDatasourceId]     = useState<string | null>(null);
   const [schema, setSchema]                 = useState<ApiSchemaTable[]>([]);
@@ -90,7 +85,6 @@ export const NewDataSource: React.FC = () => {
 
   useEffect(() => {
     api.listConsents().then(setConsents).catch(() => {});
-    api.listLanguages().then(setLanguages).catch(() => {});
     api.listDataSources().then(list => setExistingNames(list.map(d => d.name))).catch(() => {});
   }, []);
 
@@ -220,13 +214,9 @@ export const NewDataSource: React.FC = () => {
             <BasicDetails
               data={basicData}
               errors={fieldErrors}
-              languages={languages}
               onChange={patch => {
                 setBasicData(prev => ({ ...prev, ...patch }));
-                const keys = Object.keys(patch);
-                if (keys.includes('primaryLang') || keys.includes('secondaryLang'))
-                  keys.push('langConflict');
-                clearFieldError(keys);
+                clearFieldError(Object.keys(patch));
               }}
             />
           )}

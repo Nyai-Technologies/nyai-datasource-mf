@@ -1,18 +1,14 @@
 import React from 'react';
-import { Input, Textarea, Select, Checkbox } from '../../../../../components/Components';
+import { Input, Textarea, Checkbox } from '../../../../../components/Components';
 import type { BasicDetailsData } from '../../../../../types/types';
-import type { ApiLanguage } from '../../../../../lib/api';
 
 interface BasicDetailsProps {
   data: BasicDetailsData;
   onChange: (patch: Partial<BasicDetailsData>) => void;
   errors?: Record<string, string>;
-  languages?: ApiLanguage[];
 }
 
-export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, errors = {}, languages = [] }) => {
-  const langOptions = languages.map(l => ({ value: l.id, label: l.name }));
-
+export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, errors = {} }) => {
   return (
     <div className="flex flex-col gap-5">
       <Input
@@ -23,28 +19,6 @@ export const BasicDetails: React.FC<BasicDetailsProps> = ({ data, onChange, erro
         onChange={e => onChange({ name: e.target.value })}
         error={errors.name}
       />
-
-      <div className="flex flex-col gap-1">
-        <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-          <Select
-            label="Primary Language"
-            placeholder="Select the primary language"
-            options={langOptions}
-            value={data.primaryLang}
-            onChange={e => onChange({ primaryLang: e.target.value })}
-          />
-          <Select
-            label="Secondary Language"
-            placeholder="Select the secondary language"
-            options={langOptions}
-            value={data.secondaryLang}
-            onChange={e => onChange({ secondaryLang: e.target.value })}
-          />
-        </div>
-        {errors.langConflict && (
-          <p className="text-[13px] text-[#dc2626] mt-1">{errors.langConflict}</p>
-        )}
-      </div>
 
       <Textarea
         label="Description"
