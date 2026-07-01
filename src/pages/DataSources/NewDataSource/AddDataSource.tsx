@@ -170,9 +170,8 @@ export const NewDataSource: React.FC = () => {
       // Mark as SAMPLE_COLLECTED immediately after successful connection
       await api.processMetadata(dsId, { tables: allSelected, operations: ['PII'] });
       setStep(2);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(`Connection failed: ${msg}`);
+    } catch {
+      setError('The provided database connection details are incorrect. Please check and try again.');
     } finally {
       setLoading(false);
     }
