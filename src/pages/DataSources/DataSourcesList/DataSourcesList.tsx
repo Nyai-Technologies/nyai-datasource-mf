@@ -1,8 +1,36 @@
-import React, { useState, useEffect, useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Pencil, Trash2 } from 'lucide-react';
 import { AutorenewIcon, PlusIcon } from '../../../assets/layout/Icons';
 import { Button, SearchInput, Table, Pagination } from '../../../components/Components';
+
+function DeleteConfirmModal({ name, onConfirm, onCancel }: {
+  name: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[9999]" onClick={onCancel}>
+      <div
+        className="bg-white rounded-[12px] w-[440px] max-w-[calc(100vw-40px)] shadow-[0_8px_32px_rgba(0,0,0,0.18)] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-4 flex flex-col gap-3">
+          <p className="text-[17px] font-semibold text-[#1a2030]">Delete Data Source</p>
+          <p className="text-[14px] text-[#6b7280] leading-relaxed">
+            Are you sure you want to delete <span className="font-semibold text-[#374151]">"{name}"</span>? This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4">
+          <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+          <Button onClick={onConfirm}>Delete</Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 import { FilterDropdown } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { FilterOption } from '../../../components/ui/FilterDropdown/FilterDropdown';
 import type { DataSource } from '../../../types/types';
@@ -165,6 +193,7 @@ export const DataSourcesList = () => {
   const [apiError, setApiError]           = useState<string | null>(null);
   const [syncing, setSyncing]             = useState(false);
   const [deletingId, setDeletingId]       = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget]   = useState<DataSource | null>(null);
   const [search, setSearch]               = useState('');
   const [statusFilter, setStatusFilter]   = useState('');
   const [typeFilter, setTypeFilter]       = useState('');
@@ -200,7 +229,13 @@ export const DataSourcesList = () => {
   };
 
   const handleDelete = async (row: DataSource) => {
-    if (!confirm(`Delete "${row.name}"? This cannot be undone.`)) return;
+    setDeleteTarget(row);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const row = deleteTarget;
+    setDeleteTarget(null);
     setDeletingId(row.id);
     try {
       await api.deleteDataSource(row.id);
@@ -255,6 +290,13 @@ export const DataSourcesList = () => {
 
   return (
     <div className="flex flex-col h-full">
+      {deleteTarget && (
+        <DeleteConfirmModal
+          name={deleteTarget.name}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <SearchInput
