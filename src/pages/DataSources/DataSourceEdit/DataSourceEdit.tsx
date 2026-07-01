@@ -286,15 +286,17 @@ const ConnectionDetailsTab = forwardRef<
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 20 }}>
           {(['details', 'uri'] as ConnectMode[]).map(m => (
-            <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, fontWeight: mode === m ? 600 : 400 }}>
-              <input type="radio" checked={mode === m} onChange={() => setMode(m)} style={{ accentColor: '#1e7070' }} />
+            <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: isEdit ? 'default' : 'pointer', fontSize: 14, fontWeight: mode === m ? 600 : 400, opacity: isEdit && mode !== m ? 0.4 : 1 }}>
+              <input type="radio" checked={mode === m} onChange={() => !isEdit && setMode(m)} disabled={isEdit} style={{ accentColor: '#1e7070', cursor: isEdit ? 'default' : 'pointer' }} />
               {m === 'details' ? 'Connect with details' : 'Connect with URI'}
             </label>
           ))}
         </div>
-        <button onClick={() => setIsJson(v => !v)} style={{ background: 'none', border: 'none', color: '#1e7070', fontSize: 14, cursor: 'pointer', textDecoration: 'underline' }}>
-          {isJson ? 'Switch to Form' : 'Switch to JSON'}
-        </button>
+        {!isEdit && (
+          <button onClick={() => setIsJson(v => !v)} style={{ background: 'none', border: 'none', color: '#1e7070', fontSize: 14, cursor: 'pointer', textDecoration: 'underline' }}>
+            {isJson ? 'Switch to Form' : 'Switch to JSON'}
+          </button>
+        )}
       </div>
       {renderBody()}
     </div>

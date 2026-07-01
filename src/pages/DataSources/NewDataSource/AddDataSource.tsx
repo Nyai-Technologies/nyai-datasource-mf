@@ -35,7 +35,9 @@ function validateBasic(data: BasicDetailsData, existingNames: string[]): FieldEr
 
 function validateConnection(data: ConnectionData): FieldErrors {
   const errs: FieldErrors = {};
-  if (data.mode === 'details') {
+  if (data.isJson) {
+    if (!data.jsonContent?.trim()) errs.jsonContent = 'JSON configuration is required';
+  } else if (data.mode === 'details') {
     if (!data.host.trim())     errs.host     = 'Host is required';
     if (!data.port.trim())     errs.port     = 'Port is required';
     if (!data.username.trim()) errs.username = 'Username is required';
@@ -75,6 +77,8 @@ export const NewDataSource: React.FC = () => {
     dbName: import.meta.env.VITE_DEV_DB_NAME ?? '',
     uri: '',
     sslEnabled: false,
+    isJson: false,
+    jsonContent: '',
   });
 
   const [consents, setConsents]             = useState<ApiConsent[]>([]);
@@ -104,17 +108,38 @@ export const NewDataSource: React.FC = () => {
       const matchedConsent = consents.find(c => norm(c.type) === norm(consentType));
       console.log('[consent match]', { consents, consentType, matchedConsent });
 
+      let connHost = connData.host, connPort = connData.port, connUser = connData.username,
+          connPass = connData.password, connDb = connData.dbName, connSsl = connData.sslEnabled;
+
+      if (connData.isJson && connData.jsonContent) {
+        try {
+          const stripped = connData.jsonContent.replace(/\/\/[^\n]*/g, '').replace(/,(\s*[}\]])/g, '$1');
+          const parsed = JSON.parse(stripped);
+          const c = parsed?.connection ?? {};
+          connHost = c.host ?? connHost;
+          connPort = String(c.port ?? connPort);
+          connDb   = c.database ?? connDb;
+          connUser = c.credentials?.username ?? connUser;
+          connPass = c.credentials?.password ?? connPass;
+          connSsl  = c.sslEnabled ?? connSsl;
+        } catch {
+          setError('Invalid JSON — please check the format and try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const payload = {
         appName: basicData.appName,
         name: basicData.name,
         description: basicData.description,
         dialect,
-        databaseName: connData.mode === 'details' ? connData.dbName : '',
-        username: connData.mode === 'details' ? connData.username : '',
-        password: connData.mode === 'details' ? connData.password : '',
-        hostname: connData.mode === 'details' ? connData.host : '',
-        port: Number(connData.port) || defaultPort,
-        sslEnabled: connData.sslEnabled,
+        databaseName: connDb,
+        username:     connUser,
+        password:     connPass,
+        hostname:     connHost,
+        port:         Number(connPort) || defaultPort,
+        sslEnabled:   connSsl,
         consent: {
           ...(matchedConsent?.id ? { id: matchedConsent.id } : {}),
           type: consentType,

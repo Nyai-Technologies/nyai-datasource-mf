@@ -114,11 +114,15 @@ interface ConnectionDetailsProps {
 }
 
 export const ConnectionDetails: React.FC<ConnectionDetailsProps> = ({ data, onChange, errors = {} }) => {
-  const [isJson, setIsJson]       = useState(false);
-  const [jsonValue, setJsonValue] = useState(JSON_TEMPLATE);
-  const lineNumRef                = useRef<HTMLDivElement>(null);
-  const textareaRef               = useRef<HTMLTextAreaElement>(null);
-  const lineCount                 = jsonValue.split('\n').length;
+  const isJson    = data.isJson ?? false;
+  const jsonValue = data.jsonContent ?? JSON_TEMPLATE;
+
+  const setIsJson    = (v: boolean)  => onChange({ isJson: v });
+  const setJsonValue = (v: string)   => onChange({ jsonContent: v });
+
+  const lineNumRef  = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineCount   = jsonValue.split('\n').length;
 
   const handleScroll = () => {
     if (lineNumRef.current && textareaRef.current) {
