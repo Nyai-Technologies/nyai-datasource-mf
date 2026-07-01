@@ -36,8 +36,6 @@ export interface BasicDetailsData {
   appName: string;
   name: string;
   description: string;
-  primaryLang: string;
-  secondaryLang: string;
   readWrite: boolean;
   alter: boolean;
 }
