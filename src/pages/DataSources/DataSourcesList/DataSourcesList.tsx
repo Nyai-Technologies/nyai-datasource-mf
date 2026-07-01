@@ -147,11 +147,18 @@ function RowMenu({ onEdit, onDelete, disabled, canEdit }: {
   const [menuStyle, setMenuStyle]             = useState<React.CSSProperties>({});
   const btnRef                                = useRef<HTMLButtonElement>(null);
 
+  const menuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (btnRef.current && !btnRef.current.closest('[data-rowmenu]')?.contains(e.target as Node))
+      const target = e.target as Node;
+      if (
+        btnRef.current && !btnRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
         setOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -191,31 +198,28 @@ function RowMenu({ onEdit, onDelete, disabled, canEdit }: {
       </button>
 
       {open && createPortal(
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-          <div style={menuStyle}>
-            <div className="rounded-[10px] overflow-hidden" style={{ background: '#1e5f6e' }}>
-              {canEdit && (
-                <button
-                  type="button"
-                  className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
-                  onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
-                >
-                  <Pencil size={18} strokeWidth={1.8} />
-                  Edit
-                </button>
-              )}
+        <div ref={menuRef} style={menuStyle}>
+          <div className="rounded-[10px] overflow-hidden" style={{ background: '#1e5f6e' }}>
+            {canEdit && (
               <button
                 type="button"
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={e => { e.stopPropagation(); setOpen(false); onDelete(); }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium border-b border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={e => { e.stopPropagation(); setOpen(false); onEdit(); }}
               >
-                <Trash2 size={18} strokeWidth={1.8} />
-                Delete
+                <Pencil size={18} strokeWidth={1.8} />
+                Edit
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-white text-[15px] font-medium cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={e => { e.stopPropagation(); setOpen(false); onDelete(); }}
+            >
+              <Trash2 size={18} strokeWidth={1.8} />
+              Delete
+            </button>
           </div>
-        </>,
+        </div>,
         document.body
       )}
     </div>
