@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Stepper, Button } from '../../../components/Components';
 import { BasicDetails } from './steps/BasicDetails/BasicDetails';
 import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
@@ -14,18 +14,32 @@ const STEPS = [
 
 const NEXT_LABELS = ['Next', 'Test Connection', 'Save & Connect'];
 
+// Maps the UI type id to the backend dialect string and default port
+const DIALECT_MAP: Record<string, { dialect: string; defaultPort: number }> = {
+  postgresql: { dialect: 'Postgres',      defaultPort: 5432 },
+  mysql:      { dialect: 'Mysql',         defaultPort: 3306 },
+  mssql:      { dialect: 'MS_SQL_Server', defaultPort: 1433 },
+};
+
 type FieldErrors = Record<string, string>;
 
-function validateBasic(data: BasicDetailsData): FieldErrors {
+function validateBasic(data: BasicDetailsData, existingNames: string[]): FieldErrors {
   const errs: FieldErrors = {};
-  if (!data.name.trim())        errs.name        = 'Name is required';
+  if (!data.name.trim())
+    errs.name = 'Name is required';
+  else if (existingNames.some(n => n.trim().toLowerCase() === data.name.trim().toLowerCase()))
+    errs.name = 'A Data Source with this name already exists. Please choose a different name.';
   if (!data.description.trim()) errs.description = 'Description is required';
+  if (data.primaryLang && data.secondaryLang && data.primaryLang === data.secondaryLang)
+    errs.langConflict = 'Primary Language and Secondary Language cannot be the same.';
   return errs;
 }
 
 function validateConnection(data: ConnectionData): FieldErrors {
   const errs: FieldErrors = {};
-  if (data.mode === 'details') {
+  if (data.isJson) {
+    if (!data.jsonContent?.trim()) errs.jsonContent = 'JSON configuration is required';
+  } else if (data.mode === 'details') {
     if (!data.host.trim())     errs.host     = 'Host is required';
     if (!data.port.trim())     errs.port     = 'Port is required';
     if (!data.username.trim()) errs.username = 'Username is required';
@@ -38,7 +52,10 @@ function validateConnection(data: ConnectionData): FieldErrors {
 }
 
 export const NewDataSource: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const dbType    = (location.state as { dbType?: string } | null)?.dbType ?? 'postgresql';
+  const { dialect, defaultPort } = DIALECT_MAP[dbType] ?? DIALECT_MAP.postgresql;
 
   const [step, setStep]               = useState(0);
   const [loading, setLoading]         = useState(false);
@@ -51,7 +68,7 @@ export const NewDataSource: React.FC = () => {
     description: '',
     primaryLang: '',
     secondaryLang: '',
-    readWrite: true,
+    readWrite: false,
     alter: false,
   });
 
@@ -64,10 +81,13 @@ export const NewDataSource: React.FC = () => {
     dbName: import.meta.env.VITE_DEV_DB_NAME ?? '',
     uri: '',
     sslEnabled: false,
+    isJson: false,
+    jsonContent: '',
   });
 
   const [consents, setConsents]             = useState<ApiConsent[]>([]);
   const [languages, setLanguages]           = useState<ApiLanguage[]>([]);
+  const [existingNames, setExistingNames]   = useState<string[]>([]);
   const [datasourceId, setDatasourceId]     = useState<string | null>(null);
   const [schema, setSchema]                 = useState<ApiSchemaTable[]>([]);
   const [selectedTables, setSelectedTables] = useState<SelectedTable[]>([]);
@@ -75,6 +95,7 @@ export const NewDataSource: React.FC = () => {
   useEffect(() => {
     api.listConsents().then(setConsents).catch(() => {});
     api.listLanguages().then(setLanguages).catch(() => {});
+    api.listDataSources().then(list => setExistingNames(list.map(d => d.name))).catch(() => {});
   }, []);
 
   const clearFieldError = (keys: string[]) =>
@@ -88,22 +109,43 @@ export const NewDataSource: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const consentType = basicData.alter ? 'Read_Write_Alter Access' : 'Read_Write Access';
+      const consentType = basicData.alter ? 'Read_Write_Alter Access' : 'Read_Access';
       const norm = (s: string) => s.replace(/_/g, ' ').toLowerCase().trim();
       const matchedConsent = consents.find(c => norm(c.type) === norm(consentType));
       console.log('[consent match]', { consents, consentType, matchedConsent });
+
+      let connHost = connData.host, connPort = connData.port, connUser = connData.username,
+          connPass = connData.password, connDb = connData.dbName, connSsl = connData.sslEnabled;
+
+      if (connData.isJson && connData.jsonContent) {
+        try {
+          const stripped = connData.jsonContent.replace(/\/\/[^\n]*/g, '').replace(/,(\s*[}\]])/g, '$1');
+          const parsed = JSON.parse(stripped);
+          const c = parsed?.connection ?? {};
+          connHost = c.host ?? connHost;
+          connPort = String(c.port ?? connPort);
+          connDb   = c.database ?? connDb;
+          connUser = c.credentials?.username ?? connUser;
+          connPass = c.credentials?.password ?? connPass;
+          connSsl  = c.sslEnabled ?? connSsl;
+        } catch {
+          setError('Invalid JSON — please check the format and try again.');
+          setLoading(false);
+          return;
+        }
+      }
 
       const payload = {
         appName: basicData.appName,
         name: basicData.name,
         description: basicData.description,
-        dialect: 'Postgres',
-        databaseName: connData.mode === 'details' ? connData.dbName : '',
-        username: connData.mode === 'details' ? connData.username : '',
-        password: connData.mode === 'details' ? connData.password : '',
-        hostname: connData.mode === 'details' ? connData.host : '',
-        port: Number(connData.port) || 5432,
-        sslEnabled: connData.sslEnabled,
+        dialect,
+        databaseName: connDb,
+        username:     connUser,
+        password:     connPass,
+        hostname:     connHost,
+        port:         Number(connPort) || defaultPort,
+        sslEnabled:   connSsl,
         consent: {
           ...(matchedConsent?.id ? { id: matchedConsent.id } : {}),
           type: consentType,
@@ -126,14 +168,17 @@ export const NewDataSource: React.FC = () => {
 
       const result = await api.discoverDatabase(payload);
       const tables = parseDiscoverTables(result);
-      setDatasourceId(result.datasourceId);
+      const dsId   = result.datasourceId;
+      setDatasourceId(dsId);
       setSchema(tables);
-      setSelectedTables(
-        tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) })),
-      );
+      const allSelected = tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) }));
+      setSelectedTables(allSelected);
+      // Mark as SAMPLE_COLLECTED immediately after successful connection
+      await api.processMetadata(dsId, { tables: allSelected, operations: ['PII'] });
       setStep(2);
-    } catch {
-      setError('Connection failed. Please check your credentials and try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Connection failed: ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -144,10 +189,8 @@ export const NewDataSource: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await api.processMetadata(datasourceId, {
-        tables: selectedTables.map(t => ({ tableName: t.tableName, columns: [] })),
-        operations: ['PII'],
-      });
+      // PII already called after test connection — just send updated selection and mark complete
+      await api.processMetadata(datasourceId, { tables: selectedTables, operations: ['PII'] });
       navigate('/data-sources');
     } catch {
       setError('Failed to save data source. Please try again.');
@@ -161,7 +204,7 @@ export const NewDataSource: React.FC = () => {
     setError(null);
 
     if (step === 0) {
-      const errs = validateBasic(basicData);
+      const errs = validateBasic(basicData, existingNames);
       if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
       setFieldErrors({});
       setStep(1);
@@ -205,7 +248,10 @@ export const NewDataSource: React.FC = () => {
               languages={languages}
               onChange={patch => {
                 setBasicData(prev => ({ ...prev, ...patch }));
-                clearFieldError(Object.keys(patch));
+                const keys = Object.keys(patch);
+                if (keys.includes('primaryLang') || keys.includes('secondaryLang'))
+                  keys.push('langConflict');
+                clearFieldError(keys);
               }}
             />
           )}
@@ -227,7 +273,7 @@ export const NewDataSource: React.FC = () => {
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
           <button
             className="bg-transparent border-none text-[#1e7070] text-[14px] cursor-pointer p-0 hover:underline disabled:opacity-50"
             onClick={handleBack}
@@ -239,7 +285,7 @@ export const NewDataSource: React.FC = () => {
             <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleNext} disabled={loading}>
+            <Button onClick={handleNext} disabled={loading || (step === 0 && !basicData.readWrite)}>
               {loading ? 'Please wait…' : NEXT_LABELS[step]}
             </Button>
           </div>

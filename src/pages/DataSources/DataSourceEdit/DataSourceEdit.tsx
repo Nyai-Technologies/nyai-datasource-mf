@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { api, type ApiDataSourceDetail, type UpdateDataSourcePayload } from '../../../lib/api';
+import { api, type ApiDataSourceDetail, type ApiLanguage } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
 import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { Button, Input, Textarea, Select, Checkbox, Accordion } from '../../../components/Components';
@@ -66,36 +66,31 @@ export interface BasicDetailsValues {
   secondaryLang: string;
   description: string;
   readWrite: boolean;
-  alter: boolean;
 }
 
 const BasicDetailsTab = forwardRef<
   { getValues: () => BasicDetailsValues },
-  { sourceAppName?: string; sourceName: string; sourceDescription?: string }
->(({ sourceAppName = '', sourceName, sourceDescription = '' }, ref) => {
-  const [appName, setAppName]         = useState(sourceAppName);
+  { sourceAppName?: string; sourceName: string; sourceDescription?: string; languages?: ApiLanguage[] }
+>(({ sourceAppName = '', sourceName, sourceDescription = '', languages = [] }, ref) => {
   const [name, setName]               = useState(sourceName);
   const [primaryLang, setPrimaryLang] = useState('');
   const [secondaryLang, setSecond]    = useState('');
   const [description, setDesc]        = useState(sourceDescription);
-  const [readWrite, setReadWrite]     = useState(true);
-  const [alter, setAlter]             = useState(false);
-  const langs = [
-    { value: 'en', label: 'English' },
-    { value: 'hi', label: 'Hindi'   },
-    { value: 'mr', label: 'Marathi' },
-  ];
+  const [readWrite]                   = useState(false);
+
+  useEffect(() => { if (sourceName)       setName(sourceName); },          [sourceName]);
+  useEffect(() => { if (sourceDescription) setDesc(sourceDescription); },  [sourceDescription]);
+  const langs = languages.length > 0
+    ? languages.map(l => ({ value: l.id, label: l.name }))
+    : [{ value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' }, { value: 'mr', label: 'Marathi' }];
 
   useImperativeHandle(ref, () => ({
-    getValues: () => ({ appName, name, primaryLang, secondaryLang, description, readWrite, alter }),
+    getValues: () => ({ appName: sourceAppName, name, primaryLang, secondaryLang, description, readWrite }),
   }));
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-        <Input label="App Name" required placeholder="Enter the app name (e.g. MDM)" value={appName} onChange={e => setAppName(e.target.value)} />
-        <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
-      </div>
+      <Input label="Name" required placeholder="Enter a name for your data source" value={name} onChange={e => setName(e.target.value)} />
       <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
         <Select label="Primary Language" options={langs} value={primaryLang} onChange={e => setPrimaryLang(e.target.value)} />
         <Select label="Secondary Language" placeholder="Select the secondary language" options={langs} value={secondaryLang} onChange={e => setSecond(e.target.value)} />
@@ -104,12 +99,9 @@ const BasicDetailsTab = forwardRef<
       <div>
         <p className="text-[14px] font-semibold text-[#374151] mb-1">Database Access Permissions <span className="text-[#ef4444]">*</span></p>
         <p className="text-[13px] text-[#9ca3af] mb-4 leading-[1.5]">To analyse your data and power DPDP compliance, NYAI needs certain permissions for this database. These permissions are used only for consent-related operations and nothing else.</p>
-        <div className="grid grid-cols-2 gap-4 max-[700px]:grid-cols-1">
-          <div className={`border-[1.5px] rounded-[8px] p-4 transition-all ${readWrite ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
-            <Checkbox checked={readWrite} onChange={setReadWrite} label="Read & Write Access" description="Required to scan tables and identify PII columns." />
-          </div>
-          <div className={`border-[1.5px] rounded-[8px] p-4 transition-all ${alter ? 'border-[#1e7070] bg-[rgba(30,112,112,0.04)]' : 'border-[#b8c1d3]'}`}>
-            <Checkbox checked={alter} onChange={setAlter} label="Read, Write & Alter Access" description="Allows NYAI to store consent records directly in your database." />
+        <div className="w-1/2 pr-2">
+          <div className="border-[1.5px] rounded-[8px] p-4 border-[#1e7070] bg-[rgba(30,112,112,0.04)] opacity-70 cursor-not-allowed">
+            <Checkbox checked={true} onChange={() => {}} disabled label="Read Access" description="Required to scan tables and perform reconciliation." />
           </div>
         </div>
       </div>
@@ -120,17 +112,34 @@ const BasicDetailsTab = forwardRef<
 // ── Tab: Connection Details ────────────────────────────────
 type ConnectMode = 'details' | 'uri';
 
-const ConnectionDetailsTab: React.FC<{
-  hostname?: string; port?: number; username?: string;
-  databaseName?: string; sslEnabled?: boolean;
-}> = ({ hostname = '', port: initPort, username: initUser = '', databaseName = '' }) => {
+export interface ConnectionDetailsValues {
+  host: string; port: string; username: string; password: string;
+  dbName: string; sslEnabled: boolean; dialect: string;
+}
+
+const ConnectionDetailsTab = forwardRef<
+  { getValues: () => ConnectionDetailsValues },
+  { hostname?: string; port?: number; username?: string; databaseName?: string; sslEnabled?: boolean; dialect?: string; isEdit?: boolean; onSslChange?: (v: boolean) => void }
+>(({ hostname = '', port: initPort, username: initUser = '', databaseName = '', sslEnabled: initSsl = false, dialect: initDialect = 'Postgres', isEdit = false, onSslChange }, ref) => {
   const [mode, setMode]           = useState<ConnectMode>('details');
   const [isJson, setIsJson]       = useState(false);
   const [host, setHost]           = useState(hostname);
   const [port, setPort]           = useState(initPort != null ? String(initPort) : '');
   const [username, setUsername]   = useState(initUser);
-  const [password, setPassword]   = useState('');
+  // Password is never returned by the API — show a placeholder to indicate it is saved
+  const [password, setPassword]   = useState('••••••••');
   const [dbName, setDbName]       = useState(databaseName);
+  const [sslEnabled, setSslEnabled] = useState(initSsl);
+
+  useEffect(() => { if (hostname)          setHost(hostname); },           [hostname]);
+  useEffect(() => { if (initPort != null)  setPort(String(initPort)); },   [initPort]);
+  useEffect(() => { if (initUser)          setUsername(initUser); },        [initUser]);
+  useEffect(() => { if (databaseName)      setDbName(databaseName); },     [databaseName]);
+  useEffect(() => { setSslEnabled(initSsl); onSslChange?.(initSsl); },     [initSsl]);
+
+  useImperativeHandle(ref, () => ({
+    getValues: () => ({ host, port, username, password, dbName, sslEnabled, dialect: initDialect }),
+  }));
   const [uri, setUri]             = useState('');
   const [jsonValue, setJsonValue] = useState(JSON_TEMPLATE);
   const lineNumRef                = useRef<HTMLDivElement>(null);
@@ -162,12 +171,11 @@ const ConnectionDetailsTab: React.FC<{
   );
 
   const CertContent = () => {
-    const [ssl, setSsl] = useState(true);
     const [mode, setMode] = useState('verify-full');
     return (
       <div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-          <Checkbox checked={ssl} onChange={setSsl} label="SSL" />
+          <Checkbox checked={sslEnabled} onChange={v => { setSslEnabled(v); onSslChange?.(v); }} label="SSL" />
           <div style={{ position: 'relative', display: 'flex' }}>
             <select style={{ height: 34, padding: '0 28px 0 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 14, appearance: 'none', outline: 'none', cursor: 'pointer' }} value={mode} onChange={e => setMode(e.target.value)}>
               <option value="verify-full">Verify Full</option>
@@ -254,14 +262,14 @@ const ConnectionDetailsTab: React.FC<{
         <div>
           <p style={{ fontWeight: 600, fontSize: 14, color: '#374151', marginBottom: 16 }}>Required Details</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <Input label="Host" required placeholder="Enter the host" value={host} onChange={e => setHost(e.target.value)} />
-            <Input label="Port" required placeholder="Enter the port" value={port} onChange={e => setPort(e.target.value)} />
+            <Input label="Host" required placeholder="Enter the host" value={host} onChange={e => setHost(e.target.value)} disabled={isEdit} />
+            <Input label="Port" required placeholder="Enter the port" value={port} onChange={e => setPort(e.target.value)} disabled={isEdit} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            <Input label="Username" required placeholder="Enter the username" value={username} onChange={e => setUsername(e.target.value)} />
-            <Input label="Password" required type="password" placeholder="Enter the password" value={password} onChange={e => setPassword(e.target.value)} />
+            <Input label="Username" required placeholder="Enter the username" value={username} onChange={e => setUsername(e.target.value)} disabled={isEdit} />
+            <Input label="Password" required type="password" placeholder="Leave blank to keep saved password" value={password} onChange={e => setPassword(e.target.value)} disabled={isEdit} />
           </div>
-          <Input label="Database Name" required placeholder="Enter a database name" value={dbName} onChange={e => setDbName(e.target.value)} />
+          <Input label="Database Name" required placeholder="Enter a database name" value={dbName} onChange={e => setDbName(e.target.value)} disabled={isEdit} />
           <div style={{ marginTop: 8 }}>
             <p style={{ fontWeight: 600, fontSize: 14, color: '#374151', marginBottom: 8 }}>Optional Details</p>
             <Accordion title="Certificates"><CertContent /></Accordion>
@@ -289,26 +297,32 @@ const ConnectionDetailsTab: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 20 }}>
           {(['details', 'uri'] as ConnectMode[]).map(m => (
-            <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, fontWeight: mode === m ? 600 : 400 }}>
-              <input type="radio" checked={mode === m} onChange={() => setMode(m)} style={{ accentColor: '#1e7070' }} />
+            <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: isEdit ? 'default' : 'pointer', fontSize: 14, fontWeight: mode === m ? 600 : 400, opacity: isEdit && mode !== m ? 0.4 : 1 }}>
+              <input type="radio" checked={mode === m} onChange={() => !isEdit && setMode(m)} disabled={isEdit} style={{ accentColor: '#1e7070', cursor: isEdit ? 'default' : 'pointer' }} />
               {m === 'details' ? 'Connect with details' : 'Connect with URI'}
             </label>
           ))}
         </div>
-        <button onClick={() => setIsJson(v => !v)} style={{ background: 'none', border: 'none', color: '#1e7070', fontSize: 14, cursor: 'pointer', textDecoration: 'underline' }}>
-          {isJson ? 'Switch to Form' : 'Switch to JSON'}
-        </button>
+        {!isEdit && (
+          <button onClick={() => setIsJson(v => !v)} style={{ background: 'none', border: 'none', color: '#1e7070', fontSize: 14, cursor: 'pointer', textDecoration: 'underline' }}>
+            {isJson ? 'Switch to Form' : 'Switch to JSON'}
+          </button>
+        )}
       </div>
       {renderBody()}
     </div>
   );
-};
+});
 
 // ── Tab: Database ──────────────────────────────────────────
-interface ColData { id: string; name: string; description: string; }
+interface ColData { id: string; name: string; description: string; dataCategories?: string[] | null; }
 interface TableData { id: string; name: string; columns: ColData[]; }
 
-const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourceName, sourceId }) => {
+export interface DatabaseTabHandle {
+  getPiiPayload: () => { tableName: string; columns: string[] }[];
+}
+
+const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId: string }>(({ sourceName, sourceId }, ref) => {
   const [dbName, setDbName]     = useState('');
   const [tables, setTables]     = useState<TableData[]>([]);
   const [activeId, setActiveId] = useState('');
@@ -317,6 +331,13 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
   const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // piiMap: `${tableId}__${colId}` → isPii
   const [piiMap, setPiiMap]     = useState<Record<string, boolean>>({});
+
+  useImperativeHandle(ref, () => ({
+    getPiiPayload: () => tables.map(t => ({
+      tableName: t.name,
+      columns: t.columns.filter(c => piiMap[`${t.id}__${c.id}`]).map(c => c.name),
+    })),
+  }));
 
   const buildFallback = () => {
     const ts: TableData[] = DB_TABLES.map(t => ({
@@ -360,6 +381,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
               id: a.id,
               name: a.name,
               description: DB_COLUMNS[o.name]?.find(c => c.name === a.name)?.description ?? '',
+              dataCategories: a.dataCategories ?? null,
             })),
           }));
           setTables(ts);
@@ -405,7 +427,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
         })),
         operations: ['PII'],
       });
-      setVerifyMsg({ ok: true, text: 'PII scan queued' });
+      setVerifyMsg({ ok: true, text: 'Scan queued successfully' });
     } catch {
       setVerifyMsg({ ok: false, text: 'PII scan failed. Please try again.' });
     } finally {
@@ -413,9 +435,9 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
     }
   };
 
-  const activeTable   = tables.find(t => t.id === activeId);
-  const activeCols    = activeTable?.columns ?? [];
-  const displayName   = dbName || sourceName;
+  const activeTable  = tables.find(t => t.id === activeId);
+  const activeCols   = activeTable?.columns ?? [];
+  const displayName  = dbName || sourceName;
 
   return (
     <div>
@@ -428,7 +450,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
             </span>
           )}
           <Button variant="secondary" size="sm" onClick={handleVerify} disabled={verifying || loading}>
-            <Check size={14} /> {verifying ? 'Scanning…' : 'Verify'}
+            <Check size={14} /> {verifying ? 'Scanning…' : 'Scan'}
           </Button>
         </div>
       </div>
@@ -459,19 +481,19 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
 
           {/* Right: columns + description + clickable PII badge */}
           <div className="flex-1 overflow-y-auto">
-            <div className="grid [grid-template-columns:1fr_1.8fr] px-5 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] text-[13px] font-semibold text-[#374151] sticky top-0">
+            <div className="grid [grid-template-columns:1fr_1.5fr] px-5 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] text-[13px] font-semibold text-[#374151] sticky top-0">
               <span>Columns</span>
-              <span>Description</span>
+              <span>Data Categories</span>
             </div>
             {activeCols.length === 0 ? (
               <div className="px-4 py-8 text-center text-[#6b7280] text-[13px]">
-                No columns found. Click Verify to scan for PII.
+                No columns found. Click Scan to scan for PII.
               </div>
             ) : activeCols.map(col => {
               const key   = `${activeId}__${col.id}`;
               const isPii = piiMap[key] ?? false;
               return (
-                <div key={col.id} className="grid [grid-template-columns:1fr_1.8fr] items-center min-h-[52px] px-5 py-3 border-b border-[#b8c1d3] text-[14px] text-[#374151] last:border-b-0 hover:bg-[#f1f5f9]">
+                <div key={col.id} className="grid [grid-template-columns:1fr_1.5fr] items-center min-h-[52px] px-5 py-3 border-b border-[#b8c1d3] text-[14px] text-[#374151] last:border-b-0 hover:bg-[#f1f5f9]">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -483,7 +505,13 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
                     </button>
                     <span>{col.name}</span>
                   </div>
-                  <span className="text-[#9ca3af] text-[13px] leading-[1.4]">{col.description}</span>
+                  <span className="text-[#9ca3af] text-[13px]">
+                    {col.dataCategories && col.dataCategories.length > 0
+                      ? col.dataCategories.map(cat => (
+                          <span key={cat} className="inline-block mr-1 mb-1 px-[7px] py-[1px] bg-[#f1f5f9] text-[#374151] text-[11px] rounded-full border border-[#e5e7eb]">{cat}</span>
+                        ))
+                      : '—'}
+                  </span>
                 </div>
               );
             })}
@@ -492,7 +520,7 @@ const DatabaseTab: React.FC<{ sourceName: string; sourceId: string }> = ({ sourc
       )}
     </div>
   );
-};
+});
 
 // ── Main Edit Page ─────────────────────────────────────────
 const TABS = [
@@ -502,62 +530,124 @@ const TABS = [
 ];
 
 export const DataSourceEdit: React.FC = () => {
-  const navigate    = useNavigate();
-  const { id }      = useParams<{ id: string }>();
-  const location    = useLocation();
-  const listRow     = (location.state as { listRow?: DataSource } | null)?.listRow;
-  const [activeTab, setActiveTab] = useState<Tab>('basic');
-  const [ds, setDs]               = useState<ApiDataSourceDetail | null>(null);
-  const [loadingDs, setLoadingDs] = useState(true);
-  const [loadErr, setLoadErr]     = useState<string | null>(null);
-  const [saving, setSaving]       = useState(false);
-  const [saveMsg, setSaveMsg]     = useState<{ ok: boolean; text: string } | null>(null);
+  const navigate = useNavigate();
+  const { id }   = useParams<{ id: string }>();
+  const location = useLocation();
+  const listRow  = (location.state as { listRow?: DataSource } | null)?.listRow;
+
+  const [activeTab, setActiveTab]       = useState<Tab>('basic');
+  const [ds, setDs]                     = useState<ApiDataSourceDetail | null>(null);
+  const [loadingDs, setLoadingDs]       = useState(true);
+  const [loadErr, setLoadErr]           = useState<string | null>(null);
+  const [saving, setSaving]             = useState(false);
+  const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
+  const [languages, setLanguages]       = useState<ApiLanguage[]>([]);
+  const [connSslChecked, setConnSslChecked] = useState(false);
+
   const basicRef = useRef<{ getValues: () => BasicDetailsValues }>(null);
+  const connRef  = useRef<{ getValues: () => ConnectionDetailsValues }>(null);
+  const dbRef    = useRef<DatabaseTabHandle>(null);
 
   const fetchDs = () => {
     if (!id) { setLoadingDs(false); return; }
     setLoadingDs(true);
     setLoadErr(null);
     api.getDataSource(id)
-      .then(res => { console.log('[DataSourceEdit] API response:', res); setDs(res); })
-      .catch(err => {
-        console.error('[DataSourceEdit] getDataSource failed:', err);
-        setLoadErr('Failed to load data source. Please retry.');
-      })
+      .then(res => { setDs(res); })
+      .catch(() => setLoadErr('Failed to load data source. Please retry.'))
       .finally(() => setLoadingDs(false));
   };
 
-  useEffect(() => { fetchDs(); }, [id]);
+  useEffect(() => {
+    fetchDs();
+    api.listLanguages().then(setLanguages).catch(() => {});
+  }, [id]);
 
-  const handleSave = async () => {
+  useEffect(() => {
+    if (!ds) return;
+    const ssl = (ds as unknown as Record<string,unknown>);
+    setConnSslChecked(
+      (ds.sslEnabled ?? (ssl['ssl_enabled'] as boolean) ?? (ssl['ssl'] as boolean)) === true
+    );
+  }, [ds]);
+
+  // Save Basic Details then advance to Connection tab
+  const handleSaveBasic = async () => {
     if (!id) return;
     setSaving(true);
     setSaveMsg(null);
     try {
       const basic = basicRef.current?.getValues();
-      const updatePayload: UpdateDataSourcePayload = {
+      await api.updateDataSource(id, {
         operation: 'BasicDetails',
         name: basic?.name ?? '',
         description: basic?.description,
-      };
-      await api.updateDataSource(id, updatePayload);
-      setSaveMsg({ ok: true, text: 'Changes saved' });
+      });
+      setActiveTab('connection');
     } catch {
-      setSaveMsg({ ok: false, text: 'Failed to save changes. Please try again.' });
+      setSaveMsg({ ok: false, text: 'Failed to save. Please try again.' });
     } finally {
       setSaving(false);
     }
   };
 
+  // Save Connection Details then advance to Database tab
+  const handleSaveConnection = async () => {
+    if (!id) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const conn = connRef.current?.getValues();
+      if (!conn) throw new Error('no conn ref');
+      await api.updateDataSource(id, {
+        operation: 'ConnectionDetails',
+        connectionDetails: {
+          dialect:           conn.dialect,
+          databaseName:      conn.dbName,
+          username:          conn.username,
+          password:          conn.password,
+          passwordEncrypted: false,
+          hostname:          conn.host,
+          port:              Number(conn.port) || 5432,
+          sslEnabled:        conn.sslEnabled,
+        },
+      });
+      setActiveTab('database');
+    } catch {
+      setSaveMsg({ ok: false, text: 'Failed to save connection. Please try again.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Database tab: just navigate back — Scan button already handled PII
+  const handleSaveDatabase = () => {
+    navigate('/data-sources');
+  };
+
+  const handleSave = () => {
+    if (activeTab === 'basic')      return handleSaveBasic();
+    if (activeTab === 'connection') return handleSaveConnection();
+    return handleSaveDatabase();
+  };
+
+  const SAVE_LABELS: Record<Tab, string> = {
+    basic:      'Save & Next',
+    connection: 'Save & Next',
+    database:   'Save & Connect',
+  };
+
   // Merge: prefer detail API response, fall back to list row data we already have
-  const sourceAppName  = ds?.app_name    ?? ds?.appName  ?? listRow?.appName ?? '';
-  const sourceName     = ds?.name        ??                 listRow?.name    ?? '';
-  const sourceDesc     = ds?.description ?? '';
-  const connHostname   = ds?.hostname    ?? ds?.host         ?? '';
-  const connPort       = ds?.port;
-  const connUsername   = ds?.username    ?? ds?.user         ?? '';
-  const connDatabase   = ds?.databaseName ?? ds?.database_name ?? ds?.database   ?? '';
-  const connSsl        = ds?.sslEnabled  ?? ds?.ssl_enabled  ?? ds?.ssl           ?? false;
+  const sourceAppName = ds?.app_name ?? ds?.appName ?? listRow?.appName ?? '';
+  const sourceName    = ds?.name     ?? listRow?.name ?? '';
+  const sourceDesc    = ds?.description ?? '';
+  const dsRaw = ds as unknown as Record<string,unknown>;
+  const connHostname  = ds?.hostname ?? ds?.host ?? dsRaw?.['host_name'] as string ?? '';
+  const connPort      = ds?.port     ?? dsRaw?.['db_port'] as number;
+  const connUsername  = ds?.username ?? ds?.user ?? dsRaw?.['user_name'] as string ?? '';
+  const connDatabase  = ds?.databaseName ?? ds?.database_name ?? ds?.database ?? dsRaw?.['db_name'] as string ?? '';
+  const connSsl       = ds?.sslEnabled ?? ds?.ssl_enabled ?? ds?.ssl ?? false;
+  const connDialect   = ds?.dialect ?? dsRaw?.['dialect'] as string ?? 'Postgres';
 
   if (loadingDs) {
     return <div className="p-10 text-center text-[#6b7280] text-[14px]">Loading…</div>;
@@ -580,11 +670,11 @@ export const DataSourceEdit: React.FC = () => {
             type="button"
             className={`px-4 py-3 border-none border-b-2 -mb-px bg-transparent text-[14px] cursor-pointer transition-all ${
               activeTab === t.id
-                ? 'text-[#374151] font-semibold border-b-[#1e7070] border-b-[#1e7070]'
+                ? 'text-[#374151] font-semibold'
                 : 'text-[#9ca3af] border-b-transparent hover:text-[#374151]'
             }`}
             style={{ borderBottomColor: activeTab === t.id ? '#1e7070' : 'transparent' }}
-            onClick={() => setActiveTab(t.id as Tab)}
+            onClick={() => { setSaveMsg(null); setActiveTab(t.id as Tab); }}
           >
             {t.label}
           </button>
@@ -595,27 +685,27 @@ export const DataSourceEdit: React.FC = () => {
 
       {/* key remounts tabs with correct initial values when API data arrives */}
       <div className="flex-1 overflow-y-auto p-6" key={ds?.id ?? listRow?.id ?? 'empty'}>
-        <div style={{ display: activeTab === 'basic'      ? undefined : 'none' }}><BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} /></div>
-        <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
-          <ConnectionDetailsTab
-            hostname={connHostname}
-            port={connPort}
-            username={connUsername}
-            databaseName={connDatabase}
-            sslEnabled={connSsl}
-          />
+        <div style={{ display: activeTab === 'basic'      ? undefined : 'none' }}>
+          <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} languages={languages} />
         </div>
-        <div style={{ display: activeTab === 'database' ? undefined : 'none' }}><DatabaseTab sourceName={sourceName} sourceId={id ?? ''} /></div>
+        <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
+          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} dialect={connDialect} isEdit={true} onSslChange={setConnSslChecked} />
+        </div>
+        <div style={{ display: activeTab === 'database'   ? undefined : 'none' }}>
+          <DatabaseTab ref={dbRef} sourceName={sourceName} sourceId={id ?? ''} />
+        </div>
       </div>
 
-      <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+      <div className="flex justify-end items-center gap-3 px-6 py-4 flex-shrink-0">
         {saveMsg && (
           <span className={`text-[13px] mr-auto ${saveMsg.ok ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
             {saveMsg.text}
           </span>
         )}
-        <Button variant="secondary" onClick={() => navigate('/data-sources')}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</Button>
+        <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={saving}>Cancel</Button>
+        <Button onClick={handleSave} disabled={saving || (activeTab === 'connection' && !connSslChecked)}>
+          {saving ? 'Saving…' : SAVE_LABELS[activeTab]}
+        </Button>
       </div>
     </div>
   );
