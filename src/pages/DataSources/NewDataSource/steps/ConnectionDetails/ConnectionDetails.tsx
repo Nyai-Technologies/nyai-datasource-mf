@@ -41,13 +41,12 @@ const FileField: React.FC<{ label: string }> = ({ label }) => (
   </div>
 );
 
-const CertificatesContent: React.FC = () => {
-  const [ssl, setSsl] = useState(true);
+const CertificatesContent: React.FC<{ sslEnabled: boolean; onSslChange: (v: boolean) => void }> = ({ sslEnabled, onSslChange }) => {
   const [sslMode, setSslMode] = useState('verify-full');
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <Checkbox checked={ssl} onChange={setSsl} label="SSL" />
+        <Checkbox checked={sslEnabled} onChange={onSslChange} label="SSL" />
         <div className="relative flex items-center">
           <select
             className="h-[34px] pl-3 pr-7 border border-[#b8c1d3] rounded-[6px] text-[14px] text-[#374151] bg-white cursor-pointer outline-none appearance-none focus:border-[#1e7070]"
@@ -100,10 +99,10 @@ const ProxyContent: React.FC = () => {
   );
 };
 
-const OptionalDetails: React.FC = () => (
+const OptionalDetails: React.FC<{ sslEnabled: boolean; onSslChange: (v: boolean) => void }> = ({ sslEnabled, onSslChange }) => (
   <div className="mt-1">
     <p className="text-[14px] font-semibold text-[#374151] mb-3">Optional Details</p>
-    <Accordion title="Certificates"><CertificatesContent /></Accordion>
+    <Accordion title="Certificates"><CertificatesContent sslEnabled={sslEnabled} onSslChange={onSslChange} /></Accordion>
     <Accordion title="Proxy"><ProxyContent /></Accordion>
   </div>
 );
@@ -115,11 +114,15 @@ interface ConnectionDetailsProps {
 }
 
 export const ConnectionDetails: React.FC<ConnectionDetailsProps> = ({ data, onChange, errors = {} }) => {
-  const [isJson, setIsJson]       = useState(false);
-  const [jsonValue, setJsonValue] = useState(JSON_TEMPLATE);
-  const lineNumRef                = useRef<HTMLDivElement>(null);
-  const textareaRef               = useRef<HTMLTextAreaElement>(null);
-  const lineCount                 = jsonValue.split('\n').length;
+  const isJson    = data.isJson ?? false;
+  const jsonValue = data.jsonContent ?? JSON_TEMPLATE;
+
+  const setIsJson    = (v: boolean)  => onChange({ isJson: v });
+  const setJsonValue = (v: string)   => onChange({ jsonContent: v });
+
+  const lineNumRef  = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineCount   = jsonValue.split('\n').length;
 
   const handleScroll = () => {
     if (lineNumRef.current && textareaRef.current) {
@@ -226,7 +229,7 @@ export const ConnectionDetails: React.FC<ConnectionDetailsProps> = ({ data, onCh
             </div>
             <Input label="Database Name" required placeholder="Enter a database name" value={data.dbName} onChange={e => onChange({ dbName: e.target.value })} error={errors.dbName} />
           </div>
-          <OptionalDetails />
+          <OptionalDetails sslEnabled={data.sslEnabled} onSslChange={v => onChange({ sslEnabled: v })} />
         </div>
       );
     }
@@ -237,7 +240,7 @@ export const ConnectionDetails: React.FC<ConnectionDetailsProps> = ({ data, onCh
           <p className="text-[14px] font-semibold text-[#374151] mb-4">Required Details</p>
           <Input label="Connection URI" required placeholder="Enter a connection URI" value={data.uri} onChange={e => onChange({ uri: e.target.value })} error={errors.uri} />
         </div>
-        <OptionalDetails />
+        <OptionalDetails sslEnabled={data.sslEnabled} onSslChange={v => onChange({ sslEnabled: v })} />
       </div>
     );
   };

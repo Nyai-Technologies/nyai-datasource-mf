@@ -38,9 +38,63 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: false,
       assetsDir: '',
+      rollupOptions: {
+        output: {
+          assetFileNames: '[name][extname]',
+          chunkFileNames: '[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js',
+        },
+      },
     },
     preview: {
       allowedHosts: ['datasource-mf-dev.nyai.ai'],
+      cors: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
+      },
+      proxy: {
+        '/api': {
+          target: env.VITE_AUTH_ORIGIN ?? 'https://compliance.dev.nyai.ai',
+          changeOrigin: true,
+          secure: false,
+          bypass: (req) => {
+            if (req.url && req.url.endsWith('.js')) return req.url;
+          },
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              proxyReq.removeHeader('origin');
+              proxyReq.removeHeader('referer');
+              const browserCookie = req.headers.cookie ?? '';
+              const authHeader = req.headers['authorization'] ?? '';
+              const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+              const token = bearerToken || (env.VITE_DEV_TOKEN ?? '');
+              console.log('[proxy /api]', req.url, '| injecting token:', token ? 'yes' : 'no');
+              if (!browserCookie.includes('access_token=') && token) {
+                proxyReq.setHeader('Cookie', `access_token=${token}`);
+              }
+            });
+          },
+        },
+        '/data-engine': {
+          target: env.VITE_API_ORIGIN ?? 'https://dev.nyai.ai',
+          changeOrigin: true,
+          secure: false,
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              const browserCookie = req.headers.cookie ?? '';
+              const authHeader = req.headers['authorization'] ?? '';
+              const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+              const token = bearerToken || (env.VITE_DEV_TOKEN ?? '');
+              console.log('[proxy /data-engine]', req.url, '| injecting token:', token ? 'yes' : 'no');
+              if (!browserCookie.includes('access_token=') && token) {
+                proxyReq.setHeader('Cookie', `access_token=${token}`);
+              }
+            });
+          },
+        },
+      },
     },
     server: {
       port: 5001,
@@ -52,9 +106,19 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
               proxyReq.removeHeader('origin');
               proxyReq.removeHeader('referer');
+              // Inject token as cookie if the browser can't send it (localhost)
+              const browserCookie = req.headers.cookie ?? '';
+              if (!browserCookie.includes('access_token=')) {
+                const authHeader = req.headers['authorization'] ?? '';
+                const bearerToken = authHeader.startsWith('Bearer ')
+                  ? authHeader.slice(7)
+                  : '';
+                const token = bearerToken || (env.VITE_DEV_TOKEN ?? '');
+                if (token) proxyReq.setHeader('Cookie', `access_token=${token}`);
+              }
             });
           },
         },
@@ -63,9 +127,12 @@ export default defineConfig(({ mode }) => {
           configure: (proxy) => {
             proxy.on('proxyReq', (proxyReq, req) => {
               const browserCookie = req.headers.cookie ?? '';
-              if (!browserCookie.includes('access_token=')) {
-                const token = env.VITE_DEV_TOKEN ?? '';
-                if (token) proxyReq.setHeader('Cookie', `access_token=${token}`);
+              const authHeader = req.headers['authorization'] ?? '';
+              const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+              const token = bearerToken || (env.VITE_DEV_TOKEN ?? '');
+              console.log('[proxy /data-engine]', req.url, '| cookie:', browserCookie || '(none)', '| auth header:', authHeader || '(none)', '| injecting token:', token ? 'yes' : 'no');
+              if (!browserCookie.includes('access_token=') && token) {
+                proxyReq.setHeader('Cookie', `access_token=${token}`);
               }
             });
           },

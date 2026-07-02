@@ -175,7 +175,7 @@ export const CreateConsentModal: React.FC<CreateConsentModalProps> = ({
           ))}
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#b8c1d3] flex-shrink-0">
+        <div className="flex justify-end gap-3 px-6 py-4 flex-shrink-0">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button
             disabled={!canGenerate}
