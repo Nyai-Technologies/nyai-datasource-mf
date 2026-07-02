@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } f
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { api, type ApiDataSourceDetail } from '../../../lib/api';
 import type { DataSource } from '../../../types/types';
-import { AlignLeft, CheckCircle, ChevronDown, ChevronRight, Check } from 'lucide-react';
+import { AlignLeft, CheckCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, Input, Textarea, Checkbox, Accordion } from '../../../components/Components';
 // ── Types ──────────────────────────────────────────────────
 type Tab = 'basic' | 'connection' | 'database';
@@ -146,12 +146,12 @@ const ConnectionDetailsTab = forwardRef<
     } catch { /* keep as-is */ }
   };
 
-  const FileField: React.FC<{ label: string }> = ({ label }) => (
+  const FileField: React.FC<{ label: string; disabled?: boolean }> = ({ label, disabled }) => (
     <div style={{ marginBottom: 16 }}>
       <span style={{ fontSize: 14, color: '#374151', display: 'block', marginBottom: 6 }}>{label}</span>
-      <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
-        <textarea style={{ flex: 1, minHeight: 72, border: 'none', outline: 'none', padding: '8px 12px', fontFamily: 'inherit', fontSize: 14, resize: 'none' }} />
-        <div style={{ width: 160, flexShrink: 0, borderLeft: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 12, cursor: 'pointer' }}>
+      <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden', background: disabled ? '#f3f4f6' : undefined }}>
+        <textarea disabled={disabled} style={{ flex: 1, minHeight: 72, border: 'none', outline: 'none', padding: '8px 12px', fontFamily: 'inherit', fontSize: 14, resize: 'none', background: 'transparent', color: disabled ? '#6b7280' : undefined }} />
+        <div style={{ width: 160, flexShrink: 0, borderLeft: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 12, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
           <span style={{ fontSize: 14, fontWeight: 600 }}>Upload File</span>
           <span style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>Supported file types - .pem</span>
         </div>
@@ -164,9 +164,9 @@ const ConnectionDetailsTab = forwardRef<
     return (
       <div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-          <Checkbox checked={sslEnabled} onChange={v => { setSslEnabled(v); onSslChange?.(v); }} label="SSL" />
+          <Checkbox checked={sslEnabled} onChange={v => { setSslEnabled(v); onSslChange?.(v); }} label="SSL" disabled={isEdit} />
           <div style={{ position: 'relative', display: 'flex' }}>
-            <select style={{ height: 34, padding: '0 28px 0 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 14, appearance: 'none', outline: 'none', cursor: 'pointer' }} value={mode} onChange={e => setMode(e.target.value)}>
+            <select disabled={isEdit} style={{ height: 34, padding: '0 28px 0 12px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 14, appearance: 'none', outline: 'none', cursor: isEdit ? 'not-allowed' : 'pointer', background: isEdit ? '#f3f4f6' : undefined, color: isEdit ? '#6b7280' : undefined }} value={mode} onChange={e => setMode(e.target.value)}>
               <option value="verify-full">Verify Full</option>
               <option value="verify-ca">Verify CA</option>
               <option value="require">Require</option>
@@ -176,14 +176,14 @@ const ConnectionDetailsTab = forwardRef<
           </div>
         </div>
         <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Client</p>
-        <FileField label="Certificate" />
-        <FileField label="Private Key" />
+        <FileField label="Certificate" disabled={isEdit} />
+        <FileField label="Private Key" disabled={isEdit} />
         <div style={{ marginBottom: 16 }}>
           <span style={{ fontSize: 14, display: 'block', marginBottom: 6 }}>Passphrase</span>
-          <textarea style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 6, padding: '8px 12px', resize: 'none', fontFamily: 'inherit', outline: 'none', minHeight: 72 }} />
+          <textarea disabled={isEdit} style={{ width: '100%', border: '1px solid #e5e7eb', borderRadius: 6, padding: '8px 12px', resize: 'none', fontFamily: 'inherit', outline: 'none', minHeight: 72, background: isEdit ? '#f3f4f6' : undefined, color: isEdit ? '#6b7280' : undefined }} />
         </div>
         <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>Server</p>
-        <FileField label="CA Certificate" />
+        <FileField label="CA Certificate" disabled={isEdit} />
       </div>
     );
   };
@@ -195,15 +195,15 @@ const ConnectionDetailsTab = forwardRef<
     return (
       <div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-          <Input label="Host" placeholder="Enter the host" value={h} onChange={e => setH(e.target.value)} />
-          <Input label="Port" placeholder="Enter the port" value={p} onChange={e => setP(e.target.value)} />
+          <Input label="Host" placeholder="Enter the host" value={h} onChange={e => setH(e.target.value)} disabled={isEdit} />
+          <Input label="Port" placeholder="Enter the port" value={p} onChange={e => setP(e.target.value)} disabled={isEdit} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-          <Input label="Username" placeholder="Enter the username" value={u} onChange={e => setU(e.target.value)} />
-          <Input label="Password" type="password" placeholder="Enter the password" value={pw} onChange={e => setPw(e.target.value)} />
+          <Input label="Username" placeholder="Enter the username" value={u} onChange={e => setU(e.target.value)} disabled={isEdit} />
+          <Input label="Password" type="password" placeholder="Enter the password" value={pw} onChange={e => setPw(e.target.value)} disabled={isEdit} />
         </div>
         <div style={{ maxWidth: '50%' }}>
-          <Input label="Type" placeholder="Enter the type" value={t} onChange={e => setT(e.target.value)} />
+          <Input label="Type" placeholder="Enter the type" value={t} onChange={e => setT(e.target.value)} disabled={isEdit} />
         </div>
       </div>
     );
@@ -316,8 +316,6 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
   const [tables, setTables]     = useState<TableData[]>([]);
   const [activeId, setActiveId] = useState('');
   const [loading, setLoading]   = useState(true);
-  const [verifying, setVerifying] = useState(false);
-  const [verifyMsg, setVerifyMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // piiMap: `${tableId}__${colId}` → isPii
   const [piiMap, setPiiMap]     = useState<Record<string, boolean>>({});
 
@@ -404,26 +402,6 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
     setPiiMap(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleVerify = async () => {
-    if (!sourceId) return;
-    setVerifying(true);
-    setVerifyMsg(null);
-    try {
-      await api.processMetadata(sourceId, {
-        tables: tables.map(t => ({
-          tableName: t.name,
-          columns: t.columns.filter(c => piiMap[`${t.id}__${c.id}`]).map(c => c.name),
-        })),
-        operations: ['PII'],
-      });
-      setVerifyMsg({ ok: true, text: 'Scan queued successfully' });
-    } catch {
-      setVerifyMsg({ ok: false, text: 'PII scan failed. Please try again.' });
-    } finally {
-      setVerifying(false);
-    }
-  };
-
   const activeTable  = tables.find(t => t.id === activeId);
   const activeCols   = activeTable?.columns ?? [];
   const displayName  = dbName || sourceName;
@@ -432,16 +410,6 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
     <div>
       <div className="flex items-center justify-between mb-4">
         <span className="text-[14px] text-[#374151]">Database: <strong>{displayName}</strong></span>
-        <div className="flex items-center gap-[10px]">
-          {verifyMsg && (
-            <span className={`text-[13px] ${verifyMsg.ok ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
-              {verifyMsg.text}
-            </span>
-          )}
-          <Button variant="secondary" size="sm" onClick={handleVerify} disabled={verifying || loading}>
-            <Check size={14} /> {verifying ? 'Scanning…' : 'Scan'}
-          </Button>
-        </div>
       </div>
 
       {loading ? (
@@ -450,7 +418,7 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
         <div className="flex border border-[#b8c1d3] rounded-[8px] overflow-hidden min-h-[340px]">
           {/* Left: table list */}
           <div className="w-[260px] flex-shrink-0 border-r border-[#b8c1d3] overflow-y-auto">
-            <div className="text-[13px] font-semibold text-[#374151] px-4 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] sticky top-0">Tables</div>
+            <div className="text-[13px] font-semibold text-[#374151] px-4 py-3 bg-[#ECF6F9] border-b border-[#b8c1d3] sticky top-0">Tables</div>
             {tables.map(t => {
               const piiCount = t.columns.filter(c => piiMap[`${t.id}__${c.id}`]).length;
               return (
@@ -470,13 +438,13 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
 
           {/* Right: columns + description + clickable PII badge */}
           <div className="flex-1 overflow-y-auto">
-            <div className="grid [grid-template-columns:1fr_1.5fr] px-5 py-3 bg-[#f1f5f9] border-b border-[#b8c1d3] text-[13px] font-semibold text-[#374151] sticky top-0">
+            <div className="grid [grid-template-columns:1fr_1.5fr] px-5 py-3 bg-[#ECF6F9] border-b border-[#b8c1d3] text-[13px] font-semibold text-[#374151] sticky top-0">
               <span>Columns</span>
               <span>Data Categories</span>
             </div>
             {activeCols.length === 0 ? (
               <div className="px-4 py-8 text-center text-[#6b7280] text-[13px]">
-                No columns found. Click Scan to scan for PII.
+                No columns found.
               </div>
             ) : activeCols.map(col => {
               const key   = `${activeId}__${col.id}`;
@@ -497,7 +465,10 @@ const DatabaseTab = forwardRef<DatabaseTabHandle, { sourceName: string; sourceId
                   <span className="text-[#9ca3af] text-[13px]">
                     {col.dataCategories && col.dataCategories.length > 0
                       ? col.dataCategories.map(cat => (
-                          <span key={cat} className="inline-block mr-1 mb-1 px-[7px] py-[1px] bg-[#f1f5f9] text-[#374151] text-[11px] rounded-full border border-[#e5e7eb]">{cat}</span>
+                          <span key={cat} className="inline-flex items-center gap-1 mr-1 mb-1 px-[9px] py-[3px] bg-[rgba(37,99,235,0.08)] text-[#2563eb] text-[12px] font-medium rounded-full">
+                            <span className="w-[4px] h-[4px] rounded-full bg-[#2563eb] flex-shrink-0" />
+                            {cat}
+                          </span>
                         ))
                       : '—'}
                   </span>
@@ -530,7 +501,6 @@ export const DataSourceEdit: React.FC = () => {
   const [loadErr, setLoadErr]           = useState<string | null>(null);
   const [saving, setSaving]             = useState(false);
   const [saveMsg, setSaveMsg]           = useState<{ ok: boolean; text: string } | null>(null);
-  const [connSslChecked, setConnSslChecked] = useState(false);
 
   const basicRef = useRef<{ getValues: () => BasicDetailsValues }>(null);
   const connRef  = useRef<{ getValues: () => ConnectionDetailsValues }>(null);
@@ -549,14 +519,6 @@ export const DataSourceEdit: React.FC = () => {
   useEffect(() => {
     fetchDs();
   }, [id]);
-
-  useEffect(() => {
-    if (!ds) return;
-    const ssl = (ds as unknown as Record<string,unknown>);
-    setConnSslChecked(
-      (ds.sslEnabled ?? (ssl['ssl_enabled'] as boolean) ?? (ssl['ssl'] as boolean)) === true
-    );
-  }, [ds]);
 
   // Save Basic Details then advance to Connection tab
   const handleSaveBasic = async () => {
@@ -633,7 +595,7 @@ export const DataSourceEdit: React.FC = () => {
   const connPort      = ds?.port     ?? dsRaw?.['db_port'] as number;
   const connUsername  = ds?.username ?? ds?.user ?? dsRaw?.['user_name'] as string ?? '';
   const connDatabase  = ds?.databaseName ?? ds?.database_name ?? ds?.database ?? dsRaw?.['db_name'] as string ?? '';
-  const connSsl       = ds?.sslEnabled ?? ds?.ssl_enabled ?? ds?.ssl ?? false;
+  const connSsl       = ds?.sslEnabled ?? ds?.ssl_enabled ?? ds?.ssl ?? true;
   const connDialect   = ds?.dialect ?? dsRaw?.['dialect'] as string ?? 'Postgres';
 
   if (loadingDs) {
@@ -676,7 +638,7 @@ export const DataSourceEdit: React.FC = () => {
           <BasicDetailsTab ref={basicRef} sourceAppName={sourceAppName} sourceName={sourceName} sourceDescription={sourceDesc} />
         </div>
         <div style={{ display: activeTab === 'connection' ? undefined : 'none' }}>
-          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} dialect={connDialect} isEdit={true} onSslChange={setConnSslChecked} />
+          <ConnectionDetailsTab ref={connRef} hostname={connHostname} port={connPort} username={connUsername} databaseName={connDatabase} sslEnabled={connSsl} dialect={connDialect} isEdit={true} />
         </div>
         <div style={{ display: activeTab === 'database'   ? undefined : 'none' }}>
           <DatabaseTab ref={dbRef} sourceName={sourceName} sourceId={id ?? ''} />
@@ -690,7 +652,7 @@ export const DataSourceEdit: React.FC = () => {
           </span>
         )}
         <Button variant="secondary" onClick={() => navigate('/data-sources')} disabled={saving}>Cancel</Button>
-        <Button onClick={handleSave} disabled={saving || (activeTab === 'connection' && !connSslChecked)}>
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? 'Saving…' : SAVE_LABELS[activeTab]}
         </Button>
       </div>

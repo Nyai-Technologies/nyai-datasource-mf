@@ -81,13 +81,13 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
     );
   }
 
-  const headerCls = 'flex items-center gap-3 px-4 py-3 bg-[#f0f5f5] border-b border-[#b8c1d3] text-[14px] font-semibold text-[#374151]';
-  const rowCls    = 'flex w-full items-center gap-3 px-4 py-[13px] border-b border-[#e5eaf0] last:border-b-0 text-[14px] text-[#374151] border-x-0 border-t-0 cursor-pointer transition-colors text-left';
+  const headerCls = 'flex items-center gap-3 px-6 py-[14px] bg-[#eaf3f5] text-[14px] font-semibold text-[#1a2030]';
+  const rowCls    = 'flex w-full items-center gap-3 px-6 py-[15px] border-b border-[#eef1f5] last:border-b-0 text-[14px] text-[#374151] border-x-0 border-t-0 cursor-pointer transition-colors text-left';
 
   return (
-    <div className="flex border border-[#b8c1d3] rounded-[8px] overflow-hidden">
+    <div className="flex">
       {/* Tables column */}
-      <div className="flex-[0_0_50%] border-r border-[#b8c1d3] flex flex-col">
+      <div className="flex-[0_0_50%] flex flex-col">
         <div className={headerCls}>
           <Checkbox
             checked={allTablesSelected}
@@ -100,14 +100,15 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
           />
           <span>Tables</span>
         </div>
-        <div className="overflow-y-auto max-h-[460px]">
+        <div className="overflow-y-auto">
           {schema.map(t => {
             const isActive = t.tableName === activeTable;
+            const rowBg = isActive ? 'bg-[#eaf3f5]' : 'bg-white';
             return (
               <button
                 type="button"
                 key={t.tableName}
-                className={`${rowCls} ${isActive ? 'bg-[rgba(30,112,112,0.06)]' : sel.tables.has(t.tableName) ? 'bg-[#f8fafb]' : ''}`}
+                className={`${rowCls} ${rowBg}`}
                 onClick={() => setActiveTable(t.tableName)}
               >
                 <Checkbox
@@ -123,7 +124,7 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
       </div>
 
       {/* Columns column */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col border-l border-[#eef1f5]">
         <div className={headerCls}>
           <Checkbox
             checked={allColsSelected}
@@ -137,18 +138,21 @@ export const Preview: React.FC<PreviewProps> = ({ schema, onSelectionChange }) =
           />
           <span>Columns</span>
         </div>
-        <div className="overflow-y-auto max-h-[460px]">
-          {activeColumns.map(col => (
-            <button
-              type="button"
-              key={col}
-              className={`${rowCls} hover:bg-[#f8fafb]`}
-              onClick={() => toggleCol(col)}
-            >
-              <Checkbox checked={activeCols.has(col)} onChange={() => toggleCol(col)} />
-              <span className="flex-1">{col}</span>
-            </button>
-          ))}
+        <div className="overflow-y-auto">
+          {activeColumns.map(col => {
+            const isChecked = activeCols.has(col);
+            return (
+              <button
+                type="button"
+                key={col}
+                className={`${rowCls} ${isChecked ? 'bg-[#eaf3f5]' : 'bg-white'} hover:bg-[#eaf3f5]`}
+                onClick={() => toggleCol(col)}
+              >
+                <Checkbox checked={isChecked} onChange={() => toggleCol(col)} />
+                <span className="flex-1">{col}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
