@@ -17,7 +17,7 @@ export interface DataSource {
   id: string;
   appName: string;
   name: string;
-  status: 'valid' | 'invalid' | 'pending';
+  status: 'completed' | 'sample_collected' | 'created';
   type: string;
   lastSynced: string;
   addedBy: string;
@@ -36,8 +36,6 @@ export interface BasicDetailsData {
   appName: string;
   name: string;
   description: string;
-  primaryLang: string;
-  secondaryLang: string;
   readWrite: boolean;
   alter: boolean;
 }
@@ -51,6 +49,8 @@ export interface ConnectionData {
   dbName: string;
   uri: string;
   sslEnabled: boolean;
+  isJson?: boolean;
+  jsonContent?: string;
 }
 
 export interface SelectedTable {
