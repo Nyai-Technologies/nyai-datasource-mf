@@ -5,7 +5,7 @@ import { BasicDetails } from './steps/BasicDetails/BasicDetails';
 import { ConnectionDetails } from './steps/ConnectionDetails/ConnectionDetails';
 import { Preview } from './steps/Preview/Preview';
 import { api, parseDiscoverTables, type ApiSchemaTable, type ApiConsent } from '../../../lib/api';
-import type { BasicDetailsData, ConnectionData, SelectedTable } from '../../../types/types';
+import type { BasicDetailsData, ConnectionData, SelectedTable, DataSource } from '../../../types/types';
 const STEPS = [
   { label: 'Basic Details' },
   { label: 'Connection Details' },
@@ -13,6 +13,28 @@ const STEPS = [
 ];
 
 const NEXT_LABELS = ['Next', 'Test Connection', 'Save & Connect'];
+
+type WizardStatus = DataSource['status'] | null;
+
+const WIZARD_STATUS_META: Record<Exclude<WizardStatus, null>, { label: string; color: string; bg: string }> = {
+  created:          { label: 'Connected',    color: '#003DE6', bg: '#e6ecff' },
+  sample_collected: { label: 'PII Updated',  color: '#F6A700', bg: '#fff8e6' },
+  completed:        { label: 'Completed',    color: '#2BBF6A', bg: '#edfbf3' },
+};
+
+function WizardStatusBadge({ status }: { readonly status: WizardStatus }) {
+  if (!status) return null;
+  const meta = WIZARD_STATUS_META[status];
+  return (
+    <span
+      className="inline-flex items-center gap-[5px] px-[10px] py-[4px] rounded-full text-[12px] font-medium flex-shrink-0"
+      style={{ background: meta.bg, color: meta.color }}
+    >
+      <span className="w-[6px] h-[6px] rounded-full flex-shrink-0" style={{ background: meta.color }} />
+      {meta.label}
+    </span>
+  );
+}
 
 // Maps the UI type id to the backend dialect string and default port
 const DIALECT_MAP: Record<string, { dialect: string; defaultPort: number }> = {
@@ -59,6 +81,7 @@ export const NewDataSource: React.FC = () => {
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [wizardStatus, setWizardStatus] = useState<WizardStatus>(null);
 
   const [basicData, setBasicData] = useState<BasicDetailsData>({
     appName: 'DPDPA',
@@ -76,7 +99,7 @@ export const NewDataSource: React.FC = () => {
     password: import.meta.env.VITE_DEV_DB_PASS ?? '',
     dbName: import.meta.env.VITE_DEV_DB_NAME ?? '',
     uri: '',
-    sslEnabled: false,
+    sslEnabled: true,
     isJson: false,
     jsonContent: '',
   });
@@ -167,8 +190,7 @@ export const NewDataSource: React.FC = () => {
       setSchema(tables);
       const allSelected = tables.map(t => ({ tableName: t.tableName, columns: t.columns.map(c => c.name) }));
       setSelectedTables(allSelected);
-      // Mark as SAMPLE_COLLECTED immediately after successful connection
-      await api.processMetadata(dsId, { tables: allSelected, operations: ['PII'] });
+      setWizardStatus('created');
       setStep(2);
     } catch {
       setError('The provided database connection details are incorrect. Please check and try again.');
@@ -182,8 +204,9 @@ export const NewDataSource: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // PII already called after test connection — just send updated selection and mark complete
+      // Backend marks the datasource COMPLETED as soon as /process is called — only call it here, at final save.
       await api.processMetadata(datasourceId, { tables: selectedTables, operations: ['PII'] });
+      setWizardStatus('completed');
       navigate('/data-sources');
     } catch {
       setError('Failed to save data source. Please try again.');
@@ -225,7 +248,9 @@ export const NewDataSource: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="bg-white flex-1 flex flex-col overflow-hidden">
-        <Stepper steps={STEPS} current={step} />
+        <div className="flex items-center justify-center gap-4">
+          <Stepper steps={STEPS} current={step} />
+        </div>
 
         {error && (
           <div className="mx-0 mb-3 px-4 py-[10px] bg-[#fef2f2] border border-[#fecaca] rounded-[6px] text-[#dc2626] text-[14px]">
